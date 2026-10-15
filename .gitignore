@@ -1,0 +1,24 @@
+# Node
+node_modules/
+dist/
+npm-debug.log*
+.env
+
+# .NET
+EstoqueAPI/bin/
+EstoqueAPI/obj/
+EstoqueAPI/*.db
+EstoqueAPI/*.db-shm
+EstoqueAPI/*.db-wal
+
+# Android
+sistema-ong-frontend/android/.gradle/
+sistema-ong-frontend/android/app/build/
+sistema-ong-frontend/android/local.properties
+sistema-ong-frontend/android/captures/
+sistema-ong-frontend/node_modules/
+sistema-ong-frontend/dist/
+
+# VS
+.vs/
+*.user
