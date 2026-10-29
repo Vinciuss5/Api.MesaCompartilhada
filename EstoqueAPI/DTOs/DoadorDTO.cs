@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using EstoqueAPI.Validacoes;
 
 namespace EstoqueAPI.DTOs
 {
@@ -17,6 +18,7 @@ namespace EstoqueAPI.DTOs
 
         [StringLength(11, MinimumLength = 11, ErrorMessage = "O CPF deve ter exatamente 11 dígitos.")]
         [RegularExpression(@"^\d+$", ErrorMessage = "O CPF deve conter apenas números.")]
+        [CpfValido(ErrorMessage = "O CPF informado não é válido. Verifique os dígitos.")]
         string? CPF,
 
         [StringLength(150)]

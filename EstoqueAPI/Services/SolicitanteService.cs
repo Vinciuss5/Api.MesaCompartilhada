@@ -27,7 +27,10 @@ namespace EstoqueAPI.Services
             if (!string.IsNullOrWhiteSpace(search))
             {
                 // O EF Core traduzirá isso para um LIKE no SQL, prevenindo SQL Injection automaticamente
-                query = query.Where(s => s.Nome.Contains(search) || s.CPF.Contains(search));
+                query = query.Where(s =>
+                    s.Nome.Contains(search) ||
+                    (s.CPF != null && s.CPF.Contains(search)) ||
+                    (s.CNPJ != null && s.CNPJ.Contains(search)));
             }
 
             // 3. Ordenação
@@ -50,13 +53,23 @@ namespace EstoqueAPI.Services
 
         public async Task<SolicitanteResponseDTO> CriarAsync(SolicitanteCreateDTO dto)
         {
-            // RN: Validação de CPF duplicado (Substituindo o antigo 'Documento')
-            // O CPF agora é obrigatório conforme nossa nova Model
-            var existe = await _context.Solicitantes
-                .AnyAsync(s => s.CPF == dto.CPF);
+            // RN: pessoa física informa CPF, empresa informa CNPJ — um dos dois é obrigatório
+            if (string.IsNullOrWhiteSpace(dto.CPF) && string.IsNullOrWhiteSpace(dto.CNPJ))
+                throw new InvalidOperationException("Informe o CPF (pessoa física) ou o CNPJ (empresa).");
 
-            if (existe)
-                throw new InvalidOperationException("Já existe um solicitante cadastrado com este CPF.");
+            if (!string.IsNullOrWhiteSpace(dto.CPF))
+            {
+                var cpfExiste = await _context.Solicitantes.AnyAsync(s => s.CPF == dto.CPF);
+                if (cpfExiste)
+                    throw new InvalidOperationException("Já existe um solicitante cadastrado com este CPF.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(dto.CNPJ))
+            {
+                var cnpjExiste = await _context.Solicitantes.AnyAsync(s => s.CNPJ == dto.CNPJ);
+                if (cnpjExiste)
+                    throw new InvalidOperationException("Já existe um solicitante cadastrado com este CNPJ.");
+            }
 
             // Mapeamento DTO -> Entity
             var solicitante = _mapper.Map<Solicitante>(dto);
@@ -75,12 +88,19 @@ namespace EstoqueAPI.Services
             var existente = await _context.Solicitantes.FindAsync(id);
             if (existente == null) return false;
 
-            // Validação de CPF para evitar duplicidade em atualizações
-            if (existente.CPF != dto.CPF)
+            // Validação de documentos para evitar duplicidade em atualizações
+            if (!string.IsNullOrWhiteSpace(dto.CPF) && existente.CPF != dto.CPF)
             {
                 var cpfEmUso = await _context.Solicitantes.AnyAsync(s => s.CPF == dto.CPF && s.Id != id);
                 if (cpfEmUso)
                     throw new InvalidOperationException("Este CPF já está sendo utilizado por outro solicitante.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(dto.CNPJ) && existente.CNPJ != dto.CNPJ)
+            {
+                var cnpjEmUso = await _context.Solicitantes.AnyAsync(s => s.CNPJ == dto.CNPJ && s.Id != id);
+                if (cnpjEmUso)
+                    throw new InvalidOperationException("Este CNPJ já está sendo utilizado por outro solicitante.");
             }
 
             // Atualiza as propriedades do objeto existente com os dados do DTO

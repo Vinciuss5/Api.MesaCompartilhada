@@ -1,40 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { useSolicitantes } from '../../hooks/useSolicitantes';
+import {
+  formatarCPF,
+  formatarCNPJ,
+  formatarTelefone,
+  formatarCEP,
+  somenteDigitos,
+  validarCPF,
+  validarCNPJ,
+  buscarEnderecoPorCep
+} from '../../services/documentos';
 
 export default function SolicitantesIndex() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const { solicitantes, loading, fetchSolicitantes, createSolicitante, primeiraExecucao } = useSolicitantes();
 
+  // tipoPessoa: 'F' = pessoa física (CPF) | 'J' = empresa/razão social (CNPJ)
+  const formInicial = { nome: '', email: '', cpf: '', cnpj: '', telefone: '', cep: '', enderecoEntrega: '' };
+  const [tipoPessoa, setTipoPessoa] = useState('F');
+  const [formData, setFormData] = useState(formInicial);
 
-  const [formData, setFormData] = useState({
-    nome: '', 
-    email: '', 
-    cpf: '', 
-    telefone: '', 
-    enderecoEntrega: ''
-  });
-
-  const formatCPF = (value) => {
-    if (!value) return "";
-    return value
-      .replace(/\D/g, '')
-      .replace(/(\d{3})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d{1,2})/, '$1-$2')
-      .replace(/(-\d{2})\d+?$/, '$1');
-  };
-
-  const formatTelefone = (value) => {
-    if (!value) return "";
-    return value
-      .replace(/\D/g, '')
-      .replace(/(\d{2})(\d)/, '($1) $2')
-      .replace(/(\d{5})(\d)/, '$1-$2')
-      .replace(/(-\d{4})\d+?$/, '$1');
-  };
-
-  const stripMask = (value) => value.replace(/\D/g, '');
+  const stripMask = (value) => (value || '').replace(/\D/g, '');
 
   useEffect(() => {
     if (primeiraExecucao.current) {
@@ -52,26 +39,54 @@ export default function SolicitantesIndex() {
     const { name, value } = e.target;
     let formattedValue = value;
 
-    if (name === 'cpf') formattedValue = formatCPF(value);
-    if (name === 'telefone') formattedValue = formatTelefone(value);
+    if (name === 'cpf') formattedValue = formatarCPF(value);
+    if (name === 'cnpj') formattedValue = formatarCNPJ(value);
+    if (name === 'telefone') formattedValue = formatarTelefone(value);
+    if (name === 'cep') formattedValue = formatarCEP(value);
 
     setFormData(prev => ({ ...prev, [name]: formattedValue }));
   };
 
+  // Busca automática do endereço de entrega pelo CEP (ViaCEP)
+  const handleCepBlur = async () => {
+    if (somenteDigitos(formData.cep).length !== 8) return;
+    const endereco = await buscarEnderecoPorCep(formData.cep);
+    if (endereco) setFormData(prev => ({ ...prev, enderecoEntrega: endereco }));
+  };
+
+  const trocarTipoPessoa = (tipo) => {
+    setTipoPessoa(tipo);
+    // Limpa o documento do outro tipo para não enviar os dois
+    setFormData(prev => ({ ...prev, cpf: tipo === 'F' ? prev.cpf : '', cnpj: tipo === 'J' ? prev.cnpj : '' }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
+    // Pessoa física precisa de um CPF válido; empresa, de um CNPJ válido
+    if (tipoPessoa === 'F') {
+      if (!formData.cpf) { alert('Informe o CPF do solicitante.'); return; }
+      if (!validarCPF(formData.cpf)) { alert('O CPF informado não é válido. Verifique os dígitos.'); return; }
+    } else {
+      if (!formData.cnpj) { alert('Informe o CNPJ da empresa.'); return; }
+      if (!validarCNPJ(formData.cnpj)) { alert('O CNPJ informado não é válido. Verifique os dígitos.'); return; }
+    }
+
     const dataToSubmit = {
-      ...formData,
-      cpf: stripMask(formData.cpf),
-      telefone: stripMask(formData.telefone)
+      nome: formData.nome.trim(),
+      email: formData.email.trim(),
+      telefone: stripMask(formData.telefone),
+      enderecoEntrega: formData.enderecoEntrega.trim(),
+      cpf: tipoPessoa === 'F' ? stripMask(formData.cpf) : null,
+      cnpj: tipoPessoa === 'J' ? stripMask(formData.cnpj) : null
     };
 
     const result = await createSolicitante(dataToSubmit);
-    
+
     if (result.success) {
       setIsModalOpen(false);
-      setFormData({ nome: '', email: '', cpf: '', telefone: '', enderecoEntrega: '' });
+      setFormData(formInicial);
+      setTipoPessoa('F');
       fetchSolicitantes();
     } else {
       alert(result.error);
@@ -106,7 +121,7 @@ export default function SolicitantesIndex() {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Buscar por nome ou CPF..."
+            placeholder="Buscar por nome, CPF ou CNPJ..."
             className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-[#007F45] focus:border-[#007F45] transition-all"
           />
         </div>
@@ -120,7 +135,7 @@ export default function SolicitantesIndex() {
               <th className="px-6 py-4 font-semibold text-left w-3/12">Nome</th>
               <th className="px-6 py-4 font-semibold text-left w-3/12">E-mail</th>
               <th className="px-6 py-4 font-semibold text-left w-2/12">Telefone</th>
-              <th className="px-6 py-4 font-semibold text-left w-2/12">CPF</th>
+              <th className="px-6 py-4 font-semibold text-left w-2/12">CPF / CNPJ</th>
               <th className="px-6 py-4 font-semibold text-left w-4/12">Endereço de Entrega</th>
             </tr>
           </thead>
@@ -136,10 +151,11 @@ export default function SolicitantesIndex() {
                   {s.email || '-'}
                 </td>
                 <td className="px-6 py-4 text-left">
-                  {formatTelefone(s.telefone)}
+                  {formatarTelefone(s.telefone)}
                 </td>
                 <td className="px-6 py-4 text-left">
-                  {formatCPF(s.cpf)}
+                  {/* Pessoa física mostra CPF; empresa mostra CNPJ */}
+                  {s.cpf ? formatarCPF(s.cpf) : (formatarCNPJ(s.cnpj) || '-')}
                 </td>
                 <td className="px-6 py-4 text-left text-[#718096] whitespace-nowrap" title={s.enderecoEntrega}>
                   {s.enderecoEntrega}
@@ -171,22 +187,52 @@ export default function SolicitantesIndex() {
 
                   <div className="col-span-12 md:col-span-6">
                     <label className="block text-xs font-bold uppercase tracking-wider mb-2 text-[#4A5568]">E-mail (Opcional)</label>
-                    <input name="email" value={formData.email} onChange={handleInputChange} type="email" placeholder="contato@exemplo.com" className="w-full border border-gray-300 rounded-md py-2.5 px-4 text-sm focus:ring-2 focus:ring-[#007F45]/20 focus:outline-none transition-all" />
+                    <input name="email" value={formData.email} onChange={handleInputChange} type="email" placeholder="contato@exemplo.com" className="w-full border border-gray-300 rounded-md py-2.5 px-4 text-sm focus:ring-2 focus:ring-[#007F45]/20 focus:border-[#007F45] focus:outline-none transition-all" />
                   </div>
-                  
+
+                  {/* Seletor: Pessoa Física (CPF) ou Empresa (CNPJ) */}
                   <div className="col-span-12 md:col-span-6">
-                    <label className="block text-xs font-bold uppercase tracking-wider mb-2 text-[#4A5568]">CPF</label>
-                    <input name="cpf" value={formData.cpf} onChange={handleInputChange} required type="text" className="w-full border border-gray-300 rounded-md py-2.5 px-4 text-sm focus:ring-2 focus:ring-[#007F45]/20 focus:outline-none transition-all" placeholder="000.000.000-00" maxLength="14" />
+                    <label className="block text-xs font-bold uppercase tracking-wider mb-2 text-[#4A5568]">Tipo de Solicitante</label>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => trocarTipoPessoa('F')}
+                        className={`flex-1 py-2.5 px-3 rounded-md text-sm font-semibold border transition-all ${tipoPessoa === 'F' ? 'bg-[#007F45] text-white border-[#007F45]' : 'bg-white text-[#4A5568] border-gray-300 hover:border-[#007F45]'}`}>
+                        Pessoa Física
+                      </button>
+                      <button type="button" onClick={() => trocarTipoPessoa('J')}
+                        className={`flex-1 py-2.5 px-3 rounded-md text-sm font-semibold border transition-all ${tipoPessoa === 'J' ? 'bg-[#007F45] text-white border-[#007F45]' : 'bg-white text-[#4A5568] border-gray-300 hover:border-[#007F45]'}`}>
+                        Empresa (CNPJ)
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="col-span-12 md:col-span-6">
+                    {tipoPessoa === 'F' ? (
+                      <>
+                        <label className="block text-xs font-bold uppercase tracking-wider mb-2 text-[#4A5568]">CPF</label>
+                        <input name="cpf" value={formData.cpf} onChange={handleInputChange} required type="text" className="w-full border border-gray-300 rounded-md py-2.5 px-4 text-sm focus:ring-2 focus:ring-[#007F45]/20 focus:border-[#007F45] focus:outline-none transition-all" placeholder="000.000.000-00" maxLength="14" />
+                      </>
+                    ) : (
+                      <>
+                        <label className="block text-xs font-bold uppercase tracking-wider mb-2 text-[#4A5568]">CNPJ</label>
+                        <input name="cnpj" value={formData.cnpj} onChange={handleInputChange} required type="text" className="w-full border border-gray-300 rounded-md py-2.5 px-4 text-sm focus:ring-2 focus:ring-[#007F45]/20 focus:border-[#007F45] focus:outline-none transition-all" placeholder="00.000.000/0000-00" maxLength="18" />
+                      </>
+                    )}
                   </div>
 
                   <div className="col-span-12 md:col-span-4">
                     <label className="block text-xs font-bold uppercase tracking-wider mb-2 text-[#4A5568]">Telefone</label>
-                    <input name="telefone" value={formData.telefone} onChange={handleInputChange} required type="text" className="w-full border border-gray-300 rounded-md py-2.5 px-4 text-sm focus:ring-2 focus:ring-[#007F45]/20 focus:outline-none transition-all" placeholder="(00) 00000-0000" maxLength="15" />
+                    <input name="telefone" value={formData.telefone} onChange={handleInputChange} required type="text" className="w-full border border-gray-300 rounded-md py-2.5 px-4 text-sm focus:ring-2 focus:ring-[#007F45]/20 focus:border-[#007F45] focus:outline-none transition-all" placeholder="(00) 00000-0000" maxLength="15" />
+                  </div>
+
+                  <div className="col-span-12 md:col-span-4">
+                    <label className="block text-xs font-bold uppercase tracking-wider mb-2 text-[#4A5568]">CEP</label>
+                    <input name="cep" value={formData.cep} onChange={handleInputChange} onBlur={handleCepBlur} type="text" className="w-full border border-gray-300 rounded-md py-2.5 px-4 text-sm focus:ring-2 focus:ring-[#007F45]/20 focus:border-[#007F45] focus:outline-none transition-all" placeholder="00000-000" maxLength="9" />
                   </div>
 
                   <div className="col-span-12 md:col-span-8">
                     <label className="block text-xs font-bold uppercase tracking-wider mb-2 text-[#4A5568]">Endereço Completo de Entrega</label>
-                    <input name="enderecoEntrega" value={formData.enderecoEntrega} onChange={handleInputChange} required type="text" placeholder="Rua, Numero - Bairro, Cidade - UF" className="w-full border border-gray-300 rounded-md py-2.5 px-4 text-sm focus:ring-2 focus:ring-[#007F45]/20 focus:outline-none transition-all" />
+                    <input name="enderecoEntrega" value={formData.enderecoEntrega} onChange={handleInputChange} required type="text" placeholder="Rua, Número - Bairro, Cidade - UF" className="w-full border border-gray-300 rounded-md py-2.5 px-4 text-sm focus:ring-2 focus:ring-[#007F45]/20 focus:border-[#007F45] focus:outline-none transition-all" />
+                    <p className="text-xs text-[#718096] mt-1">Preencha o CEP e o endereço é preenchido automaticamente (confira o número).</p>
                   </div>
                 </div>
               </div>

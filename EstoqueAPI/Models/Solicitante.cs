@@ -14,10 +14,14 @@ namespace EstoqueAPI.Models
         [StringLength(80)]
         public string Nome { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "O CPF é obrigatório para evitar duplicidade de cadastros.")]
-        [StringLength(11, MinimumLength = 11, ErrorMessage = "O CPF deve conter exatamente 11 dígitos.")]
+        // CPF agora é opcional: empresas informam CNPJ (um dos dois é obrigatório)
+        [StringLength(11)]
         [Column(TypeName = "CHAR(11)")]
-        public string CPF { get; set; } = string.Empty;
+        public string? CPF { get; set; }
+
+        // Cadastro de pessoa jurídica (empresa): 14 dígitos, opcional
+        [StringLength(14)]
+        public string? CNPJ { get; set; }
 
         [EmailAddress(ErrorMessage = "E-mail em formato inválido.")]
         [StringLength(120)]

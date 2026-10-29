@@ -45,14 +45,12 @@ export function useFuncionarios() {
     setIsLoading(true);
     setError(null);
 
+    // Cadastro simplificado: apenas nome, e-mail, senha e nível de acesso
     const payload = {
       Nome: formData.nome.trim(),
       Email: formData.email.toLowerCase().trim(),
-      CPF: formData.cpf.replace(/\D/g, ''),
-      Telefone: formData.telefone?.replace(/\D/g, ''),
       Senha: formData.senha,
-      Tipo: String(formData.tipo).toUpperCase(), 
-      DataAdmissao: formData.dataAdmissao
+      Tipo: String(formData.tipo).toUpperCase()
     };
 
     try {

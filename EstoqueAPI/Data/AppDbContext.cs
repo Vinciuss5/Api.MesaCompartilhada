@@ -73,6 +73,7 @@ namespace EstoqueAPI.Data
             // --- SOLICITANTE ---
             modelBuilder.Entity<Solicitante>(entity => {
                 entity.HasIndex(s => s.CPF).IsUnique();
+                entity.HasIndex(s => s.CNPJ).IsUnique();
                 entity.Property(s => s.CPF).HasColumnType("CHAR(11)");
             });
 

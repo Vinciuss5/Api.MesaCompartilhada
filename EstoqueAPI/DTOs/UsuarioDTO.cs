@@ -15,10 +15,6 @@ namespace EstoqueAPI.DTOs
         [EmailAddress(ErrorMessage = "E-mail em formato inválido.")]
         string Email,
 
-        [Required(ErrorMessage = "O CPF é obrigatório.")]
-        [RegularExpression(@"^\d{11}$", ErrorMessage = "O CPF deve conter exatamente 11 números.")]
-        string CPF,
-
         [StringLength(20)]
         string? Telefone,
 
@@ -30,8 +26,8 @@ namespace EstoqueAPI.DTOs
         [RegularExpression("^(ADMIN|FUNCIONARIO|CADASTRO)$", ErrorMessage = "O tipo deve ser ADMIN, FUNCIONARIO ou CADASTRO.")]
         string Tipo,
 
-        [Required(ErrorMessage = "A data de admissão é obrigatória.")]
-        DateTime DataAdmissao
+        // Opcional: quando não vier do formulário, o sistema usa a data/hora atual (UTC)
+        DateTime? DataAdmissao
     );
 
     /// <summary>
@@ -42,7 +38,7 @@ namespace EstoqueAPI.DTOs
         int Id,
         string Nome,
         string Email,
-        string CPF,
+        string? CPF,
         string? Telefone,
         string Tipo,
         bool Ativo,

@@ -17,10 +17,10 @@ namespace EstoqueAPI.Models
         [StringLength(120)]
         public string Email { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "O CPF é obrigatório.")]
-        [StringLength(11, MinimumLength = 11)]
+        // Cadastro simplificado: o CPF não é mais obrigatório para usuário do sistema
+        [StringLength(11)]
         [Column(TypeName = "CHAR(11)")] // Otimização de banco: CPF sempre tem 11 caracteres
-        public string CPF { get; set; } = string.Empty;
+        public string? CPF { get; set; }
 
         [StringLength(20)]
         public string? Telefone { get; set; }

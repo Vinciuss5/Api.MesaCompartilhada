@@ -107,6 +107,9 @@ using (var scope = app.Services.CreateScope())
     {
         db.Database.Migrate();
     }
+
+    // Ajustes idempotentes que o EnsureCreated não faz em bancos já existentes
+    await AjustesEsquema.GarantirAsync(db, usarPostgres);
 }
 
 // --- 5. PIPELINE DE MIDDLEWARE ---

@@ -1,27 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useFuncionarios } from '../../hooks/useFuncionarios';
 
-// Utilitários de Máscara (Fora do componente para evitar recriação em cada render)
-const formatCPF = (value) => {
-  if (!value) return '';
-  return value.replace(/\D/g, '')
-              .replace(/(\d{3})(\d)/, '$1.$2')
-              .replace(/(\d{3})(\d)/, '$1.$2')
-              .replace(/(\d{3})(\d{1,2})/, '$1-$2')
-              .replace(/(-\d{2})\d+?$/, '$1');
-};
-
-const formatPhone = (value) => {
-  if (!value) return '';
-  return value.replace(/\D/g, '')
-              .replace(/(\d{2})(\d)/, '($1) $2')
-              .replace(/(\d{5})(\d)/, '$1-$2')
-              .replace(/(-\d{4})\d+?$/, '$1');
-};
-
-// Utilitário de Limpeza para a API
-const unmask = (value) => value ? value.replace(/\D/g, '') : '';
-
 export default function FuncionariosIndex() {
   const {
     funcionarios,
@@ -36,23 +15,17 @@ export default function FuncionariosIndex() {
   const [searchTerm, setSearchTerm] = useState('');
   const [formError, setFormError] = useState('');
 
-  // 1. Corrigido para 'FUNCIONARIO'
-  const formInitialState = { nome: '', email: '', cpf: '', telefone: '', tipo: 'FUNCIONARIO', senha: '', dataAdmissao: new Date().toISOString().split('T')[0] };
+  // Cadastro simplificado: nome, e-mail, nível de acesso e senha (sem CPF/telefone)
+  const formInitialState = { nome: '', email: '', tipo: 'FUNCIONARIO', senha: '' };
   const [formData, setFormData] = useState(formInitialState);
 
   useEffect(() => {
     fetchFuncionarios();
   }, [fetchFuncionarios]);
 
-  // 2. Máscara aplicada em tempo de digitação
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    let formattedValue = value;
-
-    if (name === 'cpf') formattedValue = formatCPF(value);
-    if (name === 'telefone') formattedValue = formatPhone(value);
-
-    setFormData((prev) => ({ ...prev, [name]: formattedValue }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleModalClose = () => {
@@ -66,14 +39,7 @@ export default function FuncionariosIndex() {
     e.preventDefault();
     setFormError('');
 
-    // 2. Limpeza dos dados antes de enviar para o Backend (Envia puros)
-    const payload = {
-      ...formData,
-      cpf: unmask(formData.cpf),
-      telefone: unmask(formData.telefone)
-    };
-
-    const result = await createFuncionario(payload);
+    const result = await createFuncionario(formData);
     if (result.success) handleModalClose();
     else setFormError(result.message || 'Erro ao cadastrar funcionário.');
   };
@@ -86,24 +52,10 @@ export default function FuncionariosIndex() {
   };
 
 const funcionariosFiltrados = funcionarios.filter((func) => {
-    // 1. Normalizamos a busca: letra minúscula e sem espaços inúteis
     const search = searchTerm.toLowerCase().trim();
-    
-    // 2. Criamos uma versão apenas numérica para buscas de CPF/Telefone
-    const searchNumbers = search.replace(/\D/g, '');
-
-    // 3. Verificação de segurança (evitar erro se o campo vier nulo do banco)
     const nome = func.nome?.toLowerCase() || '';
     const email = func.email?.toLowerCase() || '';
-    const cpf = func.cpf?.replace(/\D/g, '') || ''; // Garantimos que o CPF do banco está puro
-    const telefone = func.telefone?.replace(/\D/g, '') || '';
-
-    return (
-      nome.includes(search) || 
-      email.includes(search) || 
-      (searchNumbers !== '' && cpf.includes(searchNumbers)) || // Só busca CPF se houver números na busca
-      (searchNumbers !== '' && telefone.includes(searchNumbers))
-    );
+    return nome.includes(search) || email.includes(search);
   });
 
   return (
@@ -134,7 +86,7 @@ const funcionariosFiltrados = funcionarios.filter((func) => {
             type="text" 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Filtrar por nome, CPF ou e-mail..." 
+            placeholder="Filtrar por nome ou e-mail..." 
             className="block w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#007F45]/20 focus:border-[#007F45] outline-none transition-all"
           />
         </div>
@@ -146,10 +98,7 @@ const funcionariosFiltrados = funcionarios.filter((func) => {
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200 text-[#4A5568] uppercase text-[11px] tracking-wider">
               <th className="px-6 py-4 font-bold text-left">Nome</th>
-              {/* 3. Colunas separadas para E-mail e Telefone */}
               <th className="px-6 py-4 font-bold text-left">E-mail</th>
-              <th className="px-6 py-4 font-bold text-left">Telefone</th>
-              <th className="px-6 py-4 font-bold text-left">CPF</th>
               <th className="px-6 py-4 font-bold text-left">Admissão</th>
               <th className="px-6 py-4 font-bold text-left">Cargo</th>
               <th className="px-6 py-4 font-bold text-center">Status</th>
@@ -162,12 +111,8 @@ const funcionariosFiltrados = funcionarios.filter((func) => {
                 <div className={`font-bold ${func.ativo ? 'text-gray-900' : 'text-gray-500 font-normal'}`}>{func.nome}</div>
               </td>
               <td className="px-6 py-4 text-gray-600">{func.email || '-'}</td>
-              <td className="px-6 py-4 text-gray-600 whitespace-nowrap">{formatPhone(func.telefone) || '-'}</td>
               
-              {/* CPF com menor contraste para reduzir poluição visual */}
-              <td className="px-6 py-4 text-left">{formatCPF(func.cpf) || '-'}</td>
-              
-              {/* Nova Coluna: Admissão */}
+              {/* Data de admissão (gerada automaticamente pelo sistema) */}
               <td className="px-6 py-4 text-gray-700 font-medium">
                 {func.dataAdmissao ? new Date(func.dataAdmissao).toLocaleDateString('pt-BR') : '--/--/----'}
               </td>
@@ -225,16 +170,6 @@ const funcionariosFiltrados = funcionarios.filter((func) => {
                   <input required type="email" name="email" value={formData.email} onChange={handleInputChange}
                     placeholder="nome@mesacompartilhada.org"
                     className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 px-3 text-sm focus:ring-2 focus:ring-[#007F45]/20 outline-none" />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Telefone</label>
-                  <input required name="telefone" value={formData.telefone} onChange={handleInputChange} maxLength="15" placeholder="(00) 00000-0000" className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 px-3 text-sm focus:ring-2 focus:ring-[#007F45]/20 outline-none" />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold uppercase text-gray-500 mb-1">CPF</label>
-                  <input required name="cpf" value={formData.cpf} onChange={handleInputChange} maxLength="14" placeholder="000.000.000-00" className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 px-3 text-sm focus:ring-2 focus:ring-[#007F45]/20 outline-none" />
                 </div>
 
                 <div>

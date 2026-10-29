@@ -236,8 +236,11 @@ namespace EstoqueAPI.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("CNPJ")
+                        .HasMaxLength(14)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("CPF")
-                        .IsRequired()
                         .HasMaxLength(11)
                         .HasColumnType("CHAR(11)");
 
@@ -264,6 +267,9 @@ namespace EstoqueAPI.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CNPJ")
+                        .IsUnique();
+
                     b.HasIndex("CPF")
                         .IsUnique();
 
@@ -280,7 +286,6 @@ namespace EstoqueAPI.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("CPF")
-                        .IsRequired()
                         .HasMaxLength(11)
                         .HasColumnType("CHAR(11)");
 

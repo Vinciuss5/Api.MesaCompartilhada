@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useDoadores } from '../../hooks/useDoadores';
+import {
+  formatarCPF,
+  formatarTelefone,
+  formatarCEP,
+  somenteDigitos,
+  validarCPF,
+  buscarEnderecoPorCep
+} from '../../services/documentos';
 
 export default function DoadoresIndex() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -7,28 +15,8 @@ export default function DoadoresIndex() {
   const { doadores, loading, fetchDoadores, createDoador, primeiraExecucao } = useDoadores();
 
   const [formData, setFormData] = useState({
-    nome: '', email: '', cpf: '', telefone: '', endereco: ''
+    nome: '', email: '', cpf: '', telefone: '', cep: '', endereco: ''
   });
-
-  // --- Funções de Formatação (Máscaras de Visualização) ---
-  const formatCPF = (value) => {
-    if (!value) return "";
-    return value
-      .replace(/\D/g, '') 
-      .replace(/(\d{3})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d{1,2})/, '$1-$2')
-      .replace(/(-\d{2})\d+?$/, '$1'); 
-  };
-
-  const formatTelefone = (value) => {
-    if (!value) return "";
-    return value
-      .replace(/\D/g, '')
-      .replace(/(\d{2})(\d)/, '($1) $2')
-      .replace(/(\d{5})(\d)/, '$1-$2')
-      .replace(/(-\d{4})\d+?$/, '$1'); 
-  };
 
   // --- Função para limpar máscara (Sanitização para o Banco) ---
   const stripMask = (value) => value.replace(/\D/g, '');
@@ -49,27 +37,43 @@ export default function DoadoresIndex() {
     const { name, value } = e.target;
     let formattedValue = value;
 
-    if (name === 'cpf') formattedValue = formatCPF(value);
-    if (name === 'telefone') formattedValue = formatTelefone(value);
+    if (name === 'cpf') formattedValue = formatarCPF(value);
+    if (name === 'telefone') formattedValue = formatarTelefone(value);
+    if (name === 'cep') formattedValue = formatarCEP(value);
 
     setFormData(prev => ({ ...prev, [name]: formattedValue }));
   };
 
+  // Busca automática do endereço pelo CEP (ViaCEP) ao sair do campo
+  const handleCepBlur = async () => {
+    if (somenteDigitos(formData.cep).length !== 8) return;
+    const endereco = await buscarEnderecoPorCep(formData.cep);
+    if (endereco) setFormData(prev => ({ ...prev, endereco }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
+    // Validação dos dígitos verificadores do CPF antes de enviar
+    if (formData.cpf && !validarCPF(formData.cpf)) {
+      alert('O CPF informado não é válido. Verifique os dígitos.');
+      return;
+    }
+
     // Engenharia de Software: Criamos um DTO de envio limpo
     // Não alteramos o estado do formulário para não "pular" a máscara na tela do usuário
     const dataToSubmit = {
-      ...formData,
+      nome: formData.nome.trim(),
+      email: formData.email.trim(),
       cpf: stripMask(formData.cpf),
-      telefone: stripMask(formData.telefone)
+      telefone: stripMask(formData.telefone),
+      endereco: formData.endereco.trim()
     };
 
     try {
       await createDoador(dataToSubmit); // Envia apenas números
       setIsModalOpen(false);
-      setFormData({ nome: '', email: '', cpf: '', telefone: '', endereco: '' });
+      setFormData({ nome: '', email: '', cpf: '', telefone: '', cep: '', endereco: '' });
       fetchDoadores();
     } catch (err) {
       alert(err.message);
@@ -130,8 +134,8 @@ export default function DoadoresIndex() {
                 <td className="px-6 py-4 font-bold text-left">{doador.nome}</td>
                 <td className="px-6 py-4 text-left">{doador.email}</td>
                 {/* Visualização Formatada para o Usuário */}
-                <td className="px-6 py-4 text-left">{formatTelefone(doador.telefone)}</td>
-                <td className="px-6 py-4 text-left">{formatCPF(doador.cpf)}</td>
+                <td className="px-6 py-4 text-left">{formatarTelefone(doador.telefone)}</td>
+                <td className="px-6 py-4 text-left">{formatarCPF(doador.cpf)}</td>
                 <td className="px-6 py-4 text-left text-[#718096] whitespace-nowrap">
                   {doador.endereco}
                 </td>
@@ -175,9 +179,15 @@ export default function DoadoresIndex() {
                       <input name="telefone" value={formData.telefone} onChange={handleInputChange} required type="text" className="w-full border border-gray-300 rounded-md py-2 px-3 text-sm focus:ring-1 focus:ring-[#007F45] focus:outline-none" placeholder="(00) 00000-0000" maxLength="15" />
                     </div>
 
+                    <div className="col-span-12 md:col-span-4">
+                      <label className="block text-sm font-medium mb-1 text-[#4A5568]">CEP</label>
+                      <input name="cep" value={formData.cep} onChange={handleInputChange} onBlur={handleCepBlur} type="text" className="w-full border border-gray-300 rounded-md py-2 px-3 text-sm focus:ring-1 focus:ring-[#007F45] focus:outline-none" placeholder="00000-000" maxLength="9" />
+                    </div>
+
                     <div className="col-span-12 md:col-span-8">
                       <label className="block text-sm font-medium mb-1 text-[#4A5568]">Endereço Completo</label>
-                      <input name="endereco" value={formData.endereco} onChange={handleInputChange} required type="text" placeholder="Rua, Numero - Bairro, Cidade - UF" className="w-full border border-gray-300 rounded-md py-2 px-3 text-sm focus:ring-1 focus:ring-[#007F45] focus:outline-none" />
+                      <input name="endereco" value={formData.endereco} onChange={handleInputChange} required type="text" placeholder="Rua, Número - Bairro, Cidade - UF" className="w-full border border-gray-300 rounded-md py-2 px-3 text-sm focus:ring-1 focus:ring-[#007F45] focus:outline-none" />
+                      <p className="text-xs text-[#718096] mt-1">Preencha o CEP e o endereço é preenchido automaticamente (confira o número).</p>
                     </div>
                 </div>
                 </div>
