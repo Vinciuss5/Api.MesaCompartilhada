@@ -26,15 +26,15 @@ namespace EstoqueAPI.Models
         public string? Telefone { get; set; }
 
         [Required]
-        public DateTime DataAdmissao { get; set; } = DateTime.Now;
+        public DateTime DataAdmissao { get; set; } = DateTime.UtcNow;
 
         [Required]
         [StringLength(255)]
         public string SenhaHash { get; set; } = string.Empty;
 
         [Required]
-        [StringLength(10)]
-        public string Tipo { get; set; } = "FUNCIONARIO"; // ADMIN ou FUNCIONARIO[cite: 7]
+        [StringLength(15)]
+        public string Tipo { get; set; } = "FUNCIONARIO"; // ADMIN, FUNCIONARIO ou CADASTRO
 
         public bool Ativo { get; set; } = true;
 

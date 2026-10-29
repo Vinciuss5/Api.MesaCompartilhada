@@ -62,7 +62,7 @@ namespace EstoqueAPI.Services
             var solicitante = _mapper.Map<Solicitante>(dto);
 
             // Garantimos que a data de cadastro seja capturada no momento da persistência
-            solicitante.DataCadastro = DateTime.Now;
+            solicitante.DataCadastro = DateTime.UtcNow;
 
             _context.Solicitantes.Add(solicitante);
             await _context.SaveChangesAsync();

@@ -15,7 +15,7 @@ namespace EstoqueAPI.Models
 
         [Required]
         [Column("Data")]
-        public DateTime Data { get; set; } = DateTime.Now; // Defesa de código: valor padrão na criação
+        public DateTime Data { get; set; } = DateTime.UtcNow; // Defesa de código: valor padrão na criação
 
         // --- Relacionamentos ---
 

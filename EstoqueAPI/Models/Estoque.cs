@@ -23,7 +23,7 @@ namespace EstoqueAPI.Models
         public decimal Quantidade { get; set; }
 
         [Required]
-        public DateTime DataEntrada { get; set; } = DateTime.Now;
+        public DateTime DataEntrada { get; set; } = DateTime.UtcNow;
 
         // Propriedade mantida para a regra PVPS[cite: 1]
         public DateTime? DataValidade { get; set; }

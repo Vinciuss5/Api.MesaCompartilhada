@@ -28,7 +28,7 @@ namespace EstoqueAPI.Mappings
             CreateMap<UsuarioUpdateDTO, Usuario>();
             CreateMap<UsuarioCreateDTO, Usuario>()
                 .ForMember(dest => dest.SenhaHash, opt => opt.Ignore())
-                .ForMember(dest => dest.DataAdmissao, opt => opt.MapFrom(src => DateTime.Now))
+                .ForMember(dest => dest.DataAdmissao, opt => opt.MapFrom(src => DateTime.UtcNow))
                 .ForMember(dest => dest.Ativo, opt => opt.MapFrom(src => true));
 
             // --- ESTOQUE (O CORAÇÃO DA TELA) ---

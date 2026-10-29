@@ -14,7 +14,7 @@ namespace EstoqueAPI.Models
 
         [Required]
         // Mantido o nome sugerido para refletir o momento da criação
-        public DateTime DataSolicitacao { get; set; } = DateTime.Now;
+        public DateTime DataSolicitacao { get; set; } = DateTime.UtcNow;
 
         [Required]
         [StringLength(20)]

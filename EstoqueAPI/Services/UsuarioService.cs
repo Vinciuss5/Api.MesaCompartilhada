@@ -39,10 +39,14 @@ namespace EstoqueAPI.Services
 
         public async Task<UsuarioResponseDTO> CriarAsync(UsuarioCreateDTO dto)
         {
-            // Regra de Negócio: E-mail deve ser único
+            // Regra de Negócio: E-mail e CPF devem ser únicos
             var emailExiste = await _context.Usuarios.AnyAsync(u => u.Email == dto.Email);
             if (emailExiste)
-                throw new Exception("Este e-mail já está em uso no sistema.");
+                throw new InvalidOperationException("Este e-mail já está em uso no sistema.");
+
+            var cpfExiste = await _context.Usuarios.AnyAsync(u => u.CPF == dto.CPF);
+            if (cpfExiste)
+                throw new InvalidOperationException("Este CPF já está cadastrado para outro usuário.");
 
             var usuario = _mapper.Map<Usuario>(dto);
 
@@ -67,7 +71,7 @@ namespace EstoqueAPI.Services
             if (usuario.Email != dto.Email)
             {
                 var emailExiste = await _context.Usuarios.AnyAsync(u => u.Email == dto.Email);
-                if (emailExiste) throw new Exception("O novo e-mail já está em uso.");
+                if (emailExiste) throw new InvalidOperationException("O novo e-mail já está em uso.");
             }
 
             _mapper.Map(dto, usuario);

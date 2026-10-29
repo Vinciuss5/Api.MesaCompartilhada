@@ -16,7 +16,7 @@ namespace EstoqueAPI.Models
         public string Acao { get; set; } = string.Empty;
 
         [Required]
-        public DateTime DataHora { get; set; } = DateTime.Now;
+        public DateTime DataHora { get; set; } = DateTime.UtcNow;
 
         // --- Relacionamentos (Navegação) ---
 

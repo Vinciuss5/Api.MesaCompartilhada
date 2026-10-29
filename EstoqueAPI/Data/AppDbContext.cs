@@ -20,6 +20,44 @@ namespace EstoqueAPI.Data
         public DbSet<SolicitacaoItem> SolicitacaoItens { get; set; }
         public DbSet<Logs> Logs { get; set; }
 
+        public override int SaveChanges()
+        {
+            NormalizarDateTimesParaUtc();
+            return base.SaveChanges();
+        }
+
+        public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            NormalizarDateTimesParaUtc();
+            return base.SaveChangesAsync(cancellationToken);
+        }
+
+        /// <summary>
+        /// PROTEÇÃO UTC: o Postgres (Neon) exige DateTime com Kind=Utc nas colunas
+        /// "timestamp with time zone"; valores Kind=Local (ex.: DateTime.Now) ou
+        /// Unspecified (datas vindas do frontend) derrubavam a gravação com o erro
+        /// "Cannot write DateTime with Kind=Local ... only UTC is supported".
+        /// Normalizamos tudo aqui para UTC antes de persistir.
+        /// </summary>
+        private void NormalizarDateTimesParaUtc()
+        {
+            foreach (var entrada in ChangeTracker.Entries())
+            {
+                foreach (var prop in entrada.Metadata.GetProperties())
+                {
+                    if (prop.ClrType != typeof(DateTime) && prop.ClrType != typeof(DateTime?))
+                        continue;
+
+                    if (entrada.Property(prop.Name).CurrentValue is DateTime dt
+                        && dt.Kind != DateTimeKind.Utc)
+                    {
+                        // ToUniversalTime já devolve Kind=Utc
+                        entrada.Property(prop.Name).CurrentValue = dt.ToUniversalTime();
+                    }
+                }
+            }
+        }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

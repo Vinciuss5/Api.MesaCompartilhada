@@ -49,6 +49,11 @@ namespace EstoqueAPI.Controllers
                 // Captura erros de regra de negócio (CPF/E-mail já existentes)
                 return BadRequest(new { message = ex.Message });
             }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException)
+            {
+                // Corrida rara: índice único violado entre a checagem e a gravação
+                return BadRequest(new { message = "Não foi possível salvar: e-mail ou CPF já cadastrados no sistema." });
+            }
             catch (Exception)
             {
                 // Segurança: Não expomos detalhes técnicos em erros 500

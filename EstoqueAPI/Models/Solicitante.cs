@@ -31,7 +31,7 @@ namespace EstoqueAPI.Models
         public string EnderecoEntrega { get; set; } = string.Empty;
 
         [Required]
-        public DateTime DataCadastro { get; set; } = DateTime.Now;
+        public DateTime DataCadastro { get; set; } = DateTime.UtcNow;
 
         // --- Relacionamentos (Navegação) ---
 

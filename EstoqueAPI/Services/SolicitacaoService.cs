@@ -37,7 +37,7 @@ namespace EstoqueAPI.Services
             try
             {
                 var solicitacao = _mapper.Map<Solicitacao>(dto);
-                solicitacao.DataSolicitacao = DateTime.Now;
+                solicitacao.DataSolicitacao = DateTime.UtcNow;
                 solicitacao.Status = "PENDENTE";
 
                 _context.Solicitacoes.Add(solicitacao);
@@ -158,7 +158,7 @@ namespace EstoqueAPI.Services
                                     ProdutoId = item.ProdutoId,
                                     Quantidade = item.Quantidade,
                                     Origem = $"Estorno Solicitação #{solicitacao.Id}",
-                                    DataEntrada = DateTime.Now
+                                    DataEntrada = DateTime.UtcNow
                                 });
                             }
                         }
