@@ -13,19 +13,21 @@ O sistema sobe como **um único site** na nuvem:
 
 ---
 
-## Passo 1 — Criar o repositório no GitHub
+## Passo 1 — Código no GitHub ✅ (feito)
 
-1. Acesse <https://github.com/new> e crie um repositório **vazio** (sem README), nome sugerido: `SISTEMA-ONG-MESA-COMPARTILHADA-V3.0`.
-2. Na pasta do projeto, rode (PowerShell):
+O código já está publicado em: <https://github.com/Vinciuss5/Api.MesaCompartilhada>
+(branch `main`). O `.gitignore` deixa de fora: `node_modules`, `bin/obj`, os
+arquivos `.db` (banco local) e a pasta publicada com o `.exe`.
+
+Para atualizar o site no futuro:
 
 ```powershell
-cd "C:\Users\vinic\OneDrive\Área de Trabalho\SISTEMA-ONG-MESA-COMPARTILHADA-V3.0"
-git remote add origin https://github.com/SEU-USUARIO/SEU-REPO.git
-git push -u origin main
+git add .
+git commit -m "descricao da mudanca"
+git push
 ```
 
-> O `.gitignore` já deixa de fora: `node_modules`, `bin/obj`, os arquivos `.db`
-> (banco local) e a pasta publicada com o `.exe`.
+O Render detecta o push e faz o deploy sozinho.
 
 ---
 
