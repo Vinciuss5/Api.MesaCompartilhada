@@ -27,7 +27,7 @@ namespace EstoqueAPI.DTOs
         string Senha,
 
         [Required(ErrorMessage = "O tipo de perfil é obrigatório.")]
-        [RegularExpression("^(ADMIN|FUNCIONARIO)$", ErrorMessage = "O tipo deve ser ADMIN ou FUNCIONARIO.")]
+        [RegularExpression("^(ADMIN|FUNCIONARIO|CADASTRO)$", ErrorMessage = "O tipo deve ser ADMIN, FUNCIONARIO ou CADASTRO.")]
         string Tipo,
 
         [Required(ErrorMessage = "A data de admissão é obrigatória.")]
@@ -78,7 +78,7 @@ namespace EstoqueAPI.DTOs
         string? Telefone,
 
         [Required]
-        [RegularExpression("^(ADMIN|FUNCIONARIO)$")]
+        [RegularExpression("^(ADMIN|FUNCIONARIO|CADASTRO)$")]
         string Tipo,
 
         bool Ativo

@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { authHeaders } from '../services/authHeaders';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5235/api';
 const ESTOQUE_URL = `${API_BASE_URL}/estoque`;
@@ -10,9 +11,7 @@ export function useEstoque() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const getHeaders = () => ({
-    'Content-Type': 'application/json',
-  });
+  const getHeaders = () => authHeaders();
 
   const handleResponse = async (response) => {
     if (!response.ok) {

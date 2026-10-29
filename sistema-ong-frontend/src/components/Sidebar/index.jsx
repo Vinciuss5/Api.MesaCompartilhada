@@ -10,19 +10,37 @@ import { AuthContext } from '../../contexts/AuthContext';
 export default function Sidebar({ isOpen = false, onClose }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { signOut } = useContext(AuthContext);
+  const { signOut, tipo } = useContext(AuthContext);
 
-  const menuItems = [
-    { name: 'Funcionários', icon: Users, path: '/funcionarios' },
-    { name: 'Doadores', icon: HeartHandshake, path: '/doador' },
-    { name: 'Solicitantes', icon: ClipboardList, path: '/solicitante' },
+  // --- Controle de acesso: menu filtrado pelo perfil do usuário ---
+  const permissoes = {
+    ADMIN: ['funcionarios', 'doador', 'solicitante', 'estoque', 'doacao', 'solicitacao', 'relatorios'],
+    FUNCIONARIO: ['estoque'],
+    CADASTRO: ['doador', 'solicitante'],
+  };
+  const permitidos = permissoes[tipo] || [];
+
+  const todosItens = [
+    { key: 'funcionarios', name: 'Funcionários', icon: Users, path: '/funcionarios' },
+    { key: 'doador', name: 'Doadores', icon: HeartHandshake, path: '/doador' },
+    { key: 'solicitante', name: 'Solicitantes', icon: ClipboardList, path: '/solicitante' },
     { type: 'divider' },
-    { name: 'Controle de Estoque', icon: Package, path: '/estoque' },
+    { key: 'estoque', name: 'Controle de Estoque', icon: Package, path: '/estoque' },
     { type: 'divider' },
-    { name: 'Entrada de Doações', icon: ArrowDownToLine, path: '/doacao' },
-    { name: 'Saída de Solicitações', icon: ArrowUpFromLine, path: '/solicitacao' },
-    { name: 'Relatórios', icon: FileText, path: '/relatorios' },
+    { key: 'doacao', name: 'Entrada de Doações', icon: ArrowDownToLine, path: '/doacao' },
+    { key: 'solicitacao', name: 'Saída de Solicitações', icon: ArrowUpFromLine, path: '/solicitacao' },
+    { key: 'relatorios', name: 'Relatórios', icon: FileText, path: '/relatorios' },
   ];
+
+  // Mantém só as telas do perfil e remove divisórias órfãs (início/fim/duplas)
+  const menuItems = todosItens
+    .filter((item) => item.type === 'divider' || permitidos.includes(item.key))
+    .filter((item, index, arr) => {
+      if (item.type !== 'divider') return true;
+      const anterior = arr[index - 1];
+      const proximo = arr[index + 1];
+      return anterior && proximo && anterior.type !== 'divider' && proximo.type !== 'divider';
+    });
 
   const handleNavigate = (path) => {
     navigate(path);

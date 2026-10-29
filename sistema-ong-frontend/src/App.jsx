@@ -13,8 +13,27 @@ import Solicitacao from './pages/Solicitacao/Solicitacao';
 import Relatorios from './pages/Relatorios/Relatorios';
 
 function App() {
-  const { signed, loading } = useContext(AuthContext);
+  const { signed, loading, tipo } = useContext(AuthContext);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // --- Controle de acesso por perfil (telas que cada tipo pode ver) ---
+  const permissoes = {
+    ADMIN: ['funcionarios', 'doador', 'solicitante', 'estoque', 'doacao', 'solicitacao', 'relatorios'],
+    FUNCIONARIO: ['estoque'],
+    CADASTRO: ['doador', 'solicitante'],
+  };
+  const telas = permissoes[tipo] || [];
+  const telaInicial = tipo === 'CADASTRO' ? '/doador' : '/estoque';
+
+  const rotas = [
+    { key: 'estoque', path: '/estoque', element: <Estoque /> },
+    { key: 'funcionarios', path: '/funcionarios', element: <Funcionarios /> },
+    { key: 'doador', path: '/doador', element: <Doador /> },
+    { key: 'solicitante', path: '/solicitante', element: <Solicitante /> },
+    { key: 'doacao', path: '/doacao', element: <Doacao /> },
+    { key: 'solicitacao', path: '/solicitacao', element: <Solicitacao /> },
+    { key: 'relatorios', path: '/relatorios', element: <Relatorios /> },
+  ];
 
   if (loading) {
     return (
@@ -52,14 +71,13 @@ function App() {
 
             <main className="flex-1 overflow-y-auto overflow-x-hidden">
               <Routes>
-                <Route path="/estoque" element={<Estoque />} />
-                <Route path="/funcionarios" element={<Funcionarios />} />
-                <Route path="/doador" element={<Doador />} />
-                <Route path="/solicitante" element={<Solicitante />} />
-                <Route path="/doacao" element={<Doacao />} />
-                <Route path="/solicitacao" element={<Solicitacao />} />
-                <Route path="/relatorios" element={<Relatorios />} />
-                <Route path="*" element={<Navigate to="/estoque" />} />
+                {rotas
+                  .filter((r) => telas.includes(r.key))
+                  .map((r) => (
+                    <Route key={r.key} path={r.path} element={r.element} />
+                  ))}
+                {/* Qualquer rota fora do perfil cai na tela inicial permitida */}
+                <Route path="*" element={<Navigate to={telaInicial} />} />
               </Routes>
             </main>
           </div>

@@ -9,8 +9,13 @@ export function AuthProvider({ children }) {
   // Assim que o app inicia, verificamos se já existe um token salvo
   useEffect(() => {
     const token = localStorage.getItem('@MesaCompartilhada:token');
-    if (token) {
-      setUser({ token });
+    const tipo = localStorage.getItem('@MesaCompartilhada:tipo');
+    if (token && tipo) {
+      setUser({ token, tipo });
+    } else if (token) {
+      // Sessão antiga (anterior ao controle de acesso): força um novo login
+      // para que o tipo do usuário seja definido.
+      localStorage.removeItem('@MesaCompartilhada:token');
     }
     setLoading(false);
   }, []);
@@ -36,9 +41,10 @@ export function AuthProvider({ children }) {
         return { success: false, message: data.message || 'Erro ao autenticar. Verifique suas credenciais.' };
       }
 
-      // Sucesso: Salvamos o token no LocalStorage e atualizamos o estado
+      // Sucesso: Salvamos token + tipo (as permissões) no LocalStorage
       localStorage.setItem('@MesaCompartilhada:token', data.token);
-      setUser({ token: data.token });
+      localStorage.setItem('@MesaCompartilhada:tipo', data.tipo);
+      setUser({ token: data.token, tipo: data.tipo });
 
       return { success: true };
     } catch (error) {
@@ -50,11 +56,12 @@ export function AuthProvider({ children }) {
   // Função para fazer logout e limpar a sessão
   function signOut() {
     localStorage.removeItem('@MesaCompartilhada:token');
+    localStorage.removeItem('@MesaCompartilhada:tipo');
     setUser(null);
   }
 
   return (
-    <AuthContext.Provider value={{ signed: !!user, user, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ signed: !!user, user, loading, signIn, signOut, tipo: user?.tipo ?? null }}>
       {children}
     </AuthContext.Provider>
   );

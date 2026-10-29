@@ -1,4 +1,4 @@
-﻿using EstoqueAPI.DTOs;
+using EstoqueAPI.DTOs;
 using EstoqueAPI.Services;
 using Microsoft.AspNetCore.Authorization; // 1. Habilita o atributo de segurança
 using Microsoft.AspNetCore.Mvc;
@@ -8,7 +8,7 @@ namespace EstoqueAPI.Controllers
     [ApiController]
     [Route("api/[controller]")]
     // 2. Blindagem Operacional: Admins e Funcionários podem gerenciar o catálogo de produtos
-    //[Authorize(Roles = "ADMIN,FUNCIONARIO")]
+    [Authorize(Roles = "ADMIN,FUNCIONARIO")]
     public class ProdutoController : ControllerBase
     {
         private readonly IProdutoService _service;

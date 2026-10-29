@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { authHeaders } from '../services/authHeaders';
 
 // Centralize variáveis de ambiente. Interfaces reais não usam localhost hardcoded em produção.
 const API_BASE_URL = import.meta.env.VITE_API_URL 
@@ -10,9 +11,7 @@ export function useFuncionarios() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const getHeaders = () => {
-    return { 'Content-Type': 'application/json' };
-  };
+  const getHeaders = () => authHeaders();
 
   const handleResponse = async (response) => {
     if (!response.ok) {

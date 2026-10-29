@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { authHeaders } from '../services/authHeaders';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5235/api';
 
@@ -12,7 +13,7 @@ export const useSolicitacao = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_URL}/solicitacao`);
+      const response = await fetch(`${API_URL}/solicitacao`, { headers: authHeaders() });
       if (!response.ok) throw new Error('Erro ao carregar as solicitações.');
       
       const data = await response.json();
@@ -32,9 +33,7 @@ export const useSolicitacao = () => {
     try {
       const response = await fetch(`${API_URL}/solicitacao`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: authHeaders(),
         body: JSON.stringify(novaSolicitacao),
       });
 
@@ -64,10 +63,7 @@ export const useSolicitacao = () => {
     try {
       const response = await fetch(`${API_URL}/solicitacao/${id}/status`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          // 'Authorization': `Bearer ${token}` // Descomente quando ativar o [Authorize]
-        },
+        headers: authHeaders(),
         body: JSON.stringify({ novoStatus }),
       });
 

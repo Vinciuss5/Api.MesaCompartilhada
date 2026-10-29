@@ -1,5 +1,6 @@
 // src/hooks/useDoacao.js
 import { useState, useCallback } from 'react';
+import { authHeaders } from '../services/authHeaders';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5235/api';
 
@@ -8,12 +9,7 @@ export const useDoacao = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    const getHeaders = () => {
-        const headers = { 'Content-Type': 'application/json' };
-        const token = localStorage.getItem('token');
-        if (token) headers['Authorization'] = `Bearer ${token}`;
-        return headers;
-    };
+    const getHeaders = () => authHeaders();
 
     // GET: Buscar histórico
     const fetchDoacoes = useCallback(async () => {

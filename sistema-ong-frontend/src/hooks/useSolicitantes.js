@@ -1,5 +1,6 @@
 // src/hooks/useSolicitantes.js
 import { useState, useCallback, useRef } from 'react';
+import { authHeaders } from '../services/authHeaders';
 
 let cacheSolicitantes = [];
 
@@ -20,7 +21,7 @@ export const useSolicitantes = () => {
         ? `${SOLICITANTE_URL}?search=${encodeURIComponent(search)}` 
         : SOLICITANTE_URL;
 
-      const response = await fetch(url);
+      const response = await fetch(url, { headers: authHeaders() });
       if (!response.ok) throw new Error('Erro ao buscar solicitantes.');
 
       const data = await response.json();
@@ -40,7 +41,7 @@ export const useSolicitantes = () => {
     try {
       const response = await fetch(SOLICITANTE_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders(),
         body: JSON.stringify(SolicitanteDTO),
       });
 

@@ -1,4 +1,4 @@
-﻿using EstoqueAPI.DTOs;
+using EstoqueAPI.DTOs;
 using EstoqueAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -7,7 +7,7 @@ namespace EstoqueAPI.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    //[Authorize(Roles = "ADMIN,FUNCIONARIO")]
+    [Authorize(Roles = "ADMIN")]
     public class DoacaoController : ControllerBase
     {
         private readonly IDoacaoService _service;

@@ -1,4 +1,4 @@
-﻿using EstoqueAPI.DTOs;
+using EstoqueAPI.DTOs;
 using EstoqueAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -8,7 +8,7 @@ namespace EstoqueAPI.Controllers
     [ApiController]
     [Route("api/[controller]")]
     // A "Blindagem": Apenas administradores gerenciam a equipe
-    //[Authorize(Roles = "ADMIN")]
+    [Authorize(Roles = "ADMIN")]
     public class UsuarioController : ControllerBase
     {
         private readonly IUsuarioService _usuarioService;

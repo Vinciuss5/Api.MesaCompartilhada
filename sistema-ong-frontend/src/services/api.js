@@ -16,7 +16,7 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     // Usamos o prefixo '@ONG' para evitar conflitos com outros sites no mesmo computador
-    const token = localStorage.getItem('@ONG:token');
+    const token = localStorage.getItem('@MesaCompartilhada:token');
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;

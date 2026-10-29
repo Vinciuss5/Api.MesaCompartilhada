@@ -1,4 +1,4 @@
-﻿using EstoqueAPI.DTOs;
+using EstoqueAPI.DTOs;
 using EstoqueAPI.Services;
 using Microsoft.AspNetCore.Authorization; // 1. Importante para habilitar as travas
 using Microsoft.AspNetCore.Mvc;
@@ -8,7 +8,7 @@ namespace EstoqueAPI.Controllers
     [ApiController]
     [Route("api/[controller]")]
     // 2. A Blindagem Operacional: Permite que Admins e Funcionários gerenciem doadores
-    //[Authorize(Roles = "ADMIN,FUNCIONARIO")]
+    [Authorize(Roles = "ADMIN,CADASTRO")]
     public class DoadorController : ControllerBase
     {
         private readonly IDoadorService _service;

@@ -1,4 +1,4 @@
-﻿using EstoqueAPI.DTOs;
+using EstoqueAPI.DTOs;
 using EstoqueAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -8,7 +8,7 @@ namespace EstoqueAPI.Controllers
     [ApiController]
     [Route("api/[controller]")]
     // Blindagem Operacional: Ambos os perfis podem consultar o saldo de estoque
-    //[Authorize(Roles = "ADMIN,FUNCIONARIO")]
+    [Authorize(Roles = "ADMIN,FUNCIONARIO")]
     public class EstoqueController : ControllerBase
     {
         private readonly IEstoqueService _estoqueService;

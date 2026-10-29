@@ -87,7 +87,7 @@ namespace EstoqueAPI.Services
             return true;
         }
 
-        public async Task<string> LoginAsync(LoginDTO dto)
+        public async Task<(string Token, string Tipo)> LoginAsync(LoginDTO dto)
         {
             // Busca apenas usuários ativos
             var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Email == dto.Email && u.Ativo);
@@ -98,7 +98,7 @@ namespace EstoqueAPI.Services
             if (usuario == null || !BCrypt.Net.BCrypt.Verify(dto.Senha, usuario.SenhaHash))
                 throw new UnauthorizedAccessException("E-mail ou senha inválidos.");
 
-            return GerarTokenJwt(usuario);
+            return (GerarTokenJwt(usuario), usuario.Tipo);
         }
 
         // Método privado: A responsabilidade de gerar o token é interna deste serviço.

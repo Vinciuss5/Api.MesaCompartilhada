@@ -25,11 +25,11 @@ namespace EstoqueAPI.Controllers
             try
             {
                 // Delegamos toda a complexidade para o Service
-                var token = await _usuarioService.LoginAsync(dto);
+                var (token, tipo) = await _usuarioService.LoginAsync(dto);
 
-                // Retornamos um objeto anônimo contendo o token. 
+                // Retornamos token + tipo (o tipo define as telas/permissões no front-end)
                 // O front-end vai ler isso e salvar no LocalStorage ou SessionStorage.
-                return Ok(new { token });
+                return Ok(new { token, tipo });
             }
             catch (UnauthorizedAccessException ex)
             {

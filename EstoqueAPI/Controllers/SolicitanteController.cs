@@ -1,4 +1,4 @@
-﻿using EstoqueAPI.DTOs;
+using EstoqueAPI.DTOs;
 using EstoqueAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -8,7 +8,7 @@ namespace EstoqueAPI.Controllers
     [ApiController]
     [Route("api/[controller]")]
     // Blindagem: Controle de acesso centralizado na classe
-    //[Authorize(Roles = "ADMIN,FUNCIONARIO")]
+    [Authorize(Roles = "ADMIN,CADASTRO")]
     public class SolicitanteController : ControllerBase
     {
         private readonly ISolicitanteService _service;

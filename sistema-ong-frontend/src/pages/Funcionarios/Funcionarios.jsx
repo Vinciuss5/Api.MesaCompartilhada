@@ -240,7 +240,8 @@ const funcionariosFiltrados = funcionarios.filter((func) => {
                 <div>
                   <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Nível de Acesso</label>
                   <select name="tipo" value={formData.tipo} onChange={handleInputChange} className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 px-3 text-sm outline-none">
-                    <option value="FUNCIONARIO">Funcionário (Estoque)</option>
+                    <option value="FUNCIONARIO">Funcionário (Produtos/Estoque)</option>
+                    <option value="CADASTRO">Funcionário (Cadastro de Pessoas)</option>
                     <option value="ADMIN">Administrador (Total)</option>
                   </select>
                 </div>

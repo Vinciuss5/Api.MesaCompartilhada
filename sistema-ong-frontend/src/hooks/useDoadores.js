@@ -1,5 +1,6 @@
 // src/hooks/useDoadores.js
 import { useState, useCallback, useRef } from 'react';
+import { authHeaders } from '../services/authHeaders';
 
 // Cache em módulo: sobrevive entre montagens da página (mas some se recarregar o navegador)
 let cacheDoadores = [];
@@ -19,7 +20,7 @@ export const useDoadores = () => {
     setError(null);
     try {
       const url = search ? `${DOADOR_URL}?filtro=${encodeURIComponent(search)}` : DOADOR_URL;
-      const response = await fetch(url);
+      const response = await fetch(url, { headers: authHeaders() });
       if (!response.ok) throw new Error('Erro ao carregar doadores');
       const data = await response.json();
       cacheDoadores = data;
@@ -34,7 +35,7 @@ export const useDoadores = () => {
   const createDoador = async (DoadorDTO) => {
     const response = await fetch(DOADOR_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify(DoadorDTO)
     });
     if (!response.ok) {
