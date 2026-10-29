@@ -49,7 +49,7 @@ O Render detecta o push e faz o deploy sozinho.
 
 1. Acesse <https://dashboard.render.com/register> e cadastre-se **com o GitHub** (mesma conta do repositório).
 2. No Dashboard: **New → Web Service**.
-3. Aba **Git** → conecte o GitHub → escolha o repositório criado no Passo 1 → **Connect**.
+3. Aba **Git** → conecte o GitHub → escolha o repositório **Api.MesaCompartilhada** → **Connect**.
 4. Preencha:
 
 | Campo | Valor |
@@ -79,20 +79,6 @@ O Render detecta o push e faz o deploy sozinho.
 - **E-mail:** `admin@mesa.com`
 - **Senha:** a mesma senha de sempre (é o mesmo hash do banco local).
 - Se não lembrar a senha, é só avisar — gero um novo hash em 1 minuto.
-
----
-
-## Como atualizar o site depois
-
-Faça alterações, commit e push:
-
-```powershell
-git add .
-git commit -m "descricao da mudanca"
-git push
-```
-
-O Render detecta o push e **faz o deploy sozinho**. O banco não é afetado.
 
 ---
 
