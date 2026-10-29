@@ -1,0 +1,171 @@
+import { useState, useCallback } from 'react';
+
+// Centralize variáveis de ambiente. Interfaces reais não usam localhost hardcoded em produção.
+const API_BASE_URL = import.meta.env.VITE_API_URL 
+  ? `${import.meta.env.VITE_API_URL}/usuario` 
+  : 'http://localhost:5235/api/usuario'; 
+
+export function useFuncionarios() {
+  const [funcionarios, setFuncionarios] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const getHeaders = () => {
+    return { 'Content-Type': 'application/json' };
+  };
+
+  const handleResponse = async (response) => {
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      
+      const serverMessage = errorData.message || 
+                            (errorData.errors ? Object.values(errorData.errors).flat().join(", ") : null);
+      
+      throw new Error(serverMessage || 'Erro de comunicação com o servidor.');
+    }
+    return response.status === 204 ? null : response.json();
+  };
+
+  // 1. Listar (GET)
+  const fetchFuncionarios = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(API_BASE_URL, { headers: getHeaders() });
+      const data = await handleResponse(response);
+      setFuncionarios(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // 2. Criar (POST)
+  const createFuncionario = async (formData) => {
+    setIsLoading(true);
+    setError(null);
+
+    const payload = {
+      Nome: formData.nome.trim(),
+      Email: formData.email.toLowerCase().trim(),
+      CPF: formData.cpf.replace(/\D/g, ''),
+      Telefone: formData.telefone?.replace(/\D/g, ''),
+      Senha: formData.senha,
+      Tipo: String(formData.tipo).toUpperCase(), 
+      DataAdmissao: formData.dataAdmissao
+    };
+
+    try {
+      const response = await fetch(API_BASE_URL, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(payload), 
+      });
+
+      // O backend retorna o UsuarioResponseDTO no método POST[cite: 2, 3]
+      const novoUsuario = await handleResponse(response);
+      
+      // ERRO DE UX CORRIGIDO: Atualiza a lista local imediatamente sem novo GET
+      setFuncionarios((prev) => [...prev, novoUsuario]);
+
+      // CONTRATO CORRIGIDO: Retorna o mesmo padrão dos outros métodos
+      return { success: true, data: novoUsuario };
+    } catch (err) {
+      setError(err.message);
+      // Evite `throw err` se o componente espera checar `result.success`
+      return { success: false, message: err.message };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 3. Atualizar (PUT)
+  const updateFuncionario = async (id, UsuarioDTO) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const payload = {
+        Nome: UsuarioDTO.nome,
+        Email: UsuarioDTO.email,
+        Telefone: UsuarioDTO.telefone,
+        Tipo: UsuarioDTO.tipo,
+        Ativo: UsuarioDTO.ativo
+      };
+
+      const response = await fetch(`${API_BASE_URL}/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(payload),
+      });
+      
+      await handleResponse(response);
+      
+      setFuncionarios((prev) => 
+        prev.map((f) => (f.id === id ? { ...f, ...payload } : f))
+      );
+      
+      return { success: true };
+    } catch (err) {
+      setError(err.message);
+      return { success: false, message: err.message };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 4. Alternar Status (DELETE / PUT)
+  const toggleStatus = async (funcionario) => {
+    setIsLoading(true);
+    setError(null);
+    const novoStatus = !funcionario.ativo;
+
+    try {
+      let response;
+      
+      if (!novoStatus) {
+        response = await fetch(`${API_BASE_URL}/${funcionario.id}`, {
+          method: 'DELETE',
+          headers: getHeaders(),
+        });
+      } else {
+        const payload = {
+            Nome: funcionario.nome,
+            Email: funcionario.email,
+            Telefone: funcionario.telefone,
+            Tipo: funcionario.tipo,
+            Ativo: true
+        };
+        response = await fetch(`${API_BASE_URL}/${funcionario.id}`, {
+          method: 'PUT',
+          headers: getHeaders(),
+          body: JSON.stringify(payload),
+        });
+      }
+
+      await handleResponse(response);
+
+      setFuncionarios((prev) =>
+        prev.map((f) => (f.id === funcionario.id ? { ...f, ativo: novoStatus } : f))
+      );
+      
+      return { success: true };
+    } catch (err) {
+      setError(err.message);
+      return { success: false, message: err.message };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return {
+    funcionarios,
+    isLoading,
+    error,
+    fetchFuncionarios,
+    createFuncionario,
+    updateFuncionario,
+    toggleStatus,
+  };
+}

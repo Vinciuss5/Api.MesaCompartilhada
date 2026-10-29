@@ -1,0 +1,29 @@
+# .NET
+bin/
+obj/
+.vs/
+*.user
+
+# Node
+node_modules/
+
+# Build do frontend (gerado dentro do Docker/CI)
+sistema-ong-frontend/dist/
+
+# Banco local (dados — não versionar)
+*.db
+*.db-shm
+*.db-wal
+
+# Publicação local da API (exe, DLLs e launcher)
+SISTEMA-ONG-MESA-COMPARTILHADA-V3.0/
+
+# Ambiente (o .env.production versionado é de propósito: só contém /api)
+sistema-ong-frontend/.env
+sistema-ong-frontend/.env.local
+sistema-ong-frontend/.env.*.local
+
+# Logs e arquivos do sistema
+*.log
+Thumbs.db
+.DS_Store

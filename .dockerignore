@@ -1,0 +1,11 @@
+# Não levar para a imagem Docker
+**/bin/
+**/obj/
+**/.vs/
+**/node_modules/
+**/dist/
+*.db
+*.db-shm
+*.db-wal
+# Publicação local (exe + DLLs)
+SISTEMA-ONG-MESA-COMPARTILHADA-V3.0/
