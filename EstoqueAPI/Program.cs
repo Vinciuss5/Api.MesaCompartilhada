@@ -63,6 +63,9 @@ builder.Services.AddScoped<IDoacaoService, DoacaoService>();
 builder.Services.AddScoped<ISolicitacaoService, SolicitacaoService>();
 builder.Services.AddScoped<IUsuarioService, UsuarioService>();
 builder.Services.AddScoped<IEstoqueService, EstoqueService>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<ILogService, LogService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 
 // --- 3. CONFIGURAÇÃO DE AUTENTICAÇÃO JWT ---
 var jwtKey = builder.Configuration["Jwt:Key"] ?? "ChaveSuperSecretaDePeloMenos32Caracteres";
@@ -87,7 +90,10 @@ builder.Services.AddAuthentication(x =>
 });
 
 // --- 4. CONFIGURAÇÃO MINIMALISTA ---
-builder.Services.AddControllers();
+// O filtro grava em "Logs" toda mutação autenticada com sucesso (auditoria)
+builder.Services.AddScoped<EstoqueAPI.Filters.AuditoriaActionFilter>();
+builder.Services.AddControllers(options =>
+    options.Filters.Add<EstoqueAPI.Filters.AuditoriaActionFilter>());
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 

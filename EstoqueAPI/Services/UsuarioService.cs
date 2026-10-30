@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace EstoqueAPI.Services
@@ -15,13 +16,18 @@ namespace EstoqueAPI.Services
         private readonly AppDbContext _context;
         private readonly IMapper _mapper;
         private readonly IConfiguration _config;
+        private readonly IEmailService _emailService;
+        private readonly ILogger<UsuarioService> _logger;
 
         // Injetamos IConfiguration para ler a chave secreta do JWT do appsettings.json
-        public UsuarioService(AppDbContext context, IMapper mapper, IConfiguration config)
+        public UsuarioService(AppDbContext context, IMapper mapper, IConfiguration config,
+            IEmailService emailService, ILogger<UsuarioService> logger)
         {
             _context = context;
             _mapper = mapper;
             _config = config;
+            _emailService = emailService;
+            _logger = logger;
         }
 
         public async Task<IEnumerable<UsuarioResponseDTO>> ListarTodosAsync()
@@ -99,6 +105,81 @@ namespace EstoqueAPI.Services
                 throw new UnauthorizedAccessException("E-mail ou senha inválidos.");
 
             return (GerarTokenJwt(usuario), usuario.Tipo);
+        }
+
+        // --- RECUPERAÇÃO DE SENHA ("esqueci minha senha") ---
+
+        public async Task SolicitarRecuperacaoAsync(string email, string urlFrontend)
+        {
+            // Silencioso por segurança: se o e-mail não existe, não revelamos isso
+            var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Email == email && u.Ativo);
+            if (usuario == null) return;
+
+            // Invalida tokens anteriores não usados (um link válido por vez)
+            var antigos = await _context.SenhaResetTokens
+                .Where(t => t.UsuarioId == usuario.Id && !t.Usado)
+                .ToListAsync();
+            foreach (var t in antigos) t.Usado = true;
+
+            // Token aleatório de 64 caracteres hexadecimais (256 bits)
+            var token = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+
+            _context.SenhaResetTokens.Add(new SenhaResetToken
+            {
+                Token = token,
+                UsuarioId = usuario.Id,
+                ExpiraEm = DateTime.UtcNow.AddMinutes(30)
+            });
+            await _context.SaveChangesAsync();
+
+            var link = $"{urlFrontend.TrimEnd('/')}/redefinir-senha?token={token}";
+            var corpo = $"""
+                <p>Olá, {usuario.Nome}.</p>
+                <p>Recebemos uma solicitação para redefinir a senha da sua conta no sistema
+                <b>Mesa Compartilhada</b>.</p>
+                <p><a href="{link}">Clique aqui para criar uma nova senha</a> (válido por 30 minutos).</p>
+                <p>Se você não pediu isso, ignore este e-mail — sua senha continua a mesma.</p>
+                """;
+
+            var enviado = await _emailService.EnviarAsync(usuario.Email, "Redefinição de senha — Mesa Compartilhada", corpo);
+
+            // Sem SMTP configurado: registra o link no log do servidor para uso imediato
+            if (!enviado)
+                _logger.LogWarning(
+                    "SMTP não configurado. Link de recuperação para {Email} (30 min): {Link}",
+                    usuario.Email, link);
+        }
+
+        public async Task RedefinirSenhaAsync(string token, string novaSenha)
+        {
+            var registro = await _context.SenhaResetTokens
+                .Include(t => t.Usuario)
+                .FirstOrDefaultAsync(t => t.Token == token);
+
+            if (registro == null || registro.Usado || registro.ExpiraEm < DateTime.UtcNow
+                || registro.Usuario == null || !registro.Usuario.Ativo)
+                throw new InvalidOperationException("Link de recuperação inválido ou expirado.");
+
+            registro.Usuario.SenhaHash = BCrypt.Net.BCrypt.HashPassword(novaSenha);
+            registro.Usado = true;
+
+            // Invalida qualquer outro token pendente do mesmo usuário
+            var outros = await _context.SenhaResetTokens
+                .Where(t => t.UsuarioId == registro.UsuarioId && !t.Usado && t.Id != registro.Id)
+                .ToListAsync();
+            foreach (var t in outros) t.Usado = true;
+
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<bool> RedefinirSenhaPorAdminAsync(int id, string novaSenha)
+        {
+            var usuario = await _context.Usuarios.FindAsync(id);
+            if (usuario == null) return false;
+
+            usuario.SenhaHash = BCrypt.Net.BCrypt.HashPassword(novaSenha);
+            await _context.SaveChangesAsync();
+            return true;
         }
 
         // Método privado: A responsabilidade de gerar o token é interna deste serviço.

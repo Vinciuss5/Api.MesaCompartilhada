@@ -39,7 +39,9 @@ namespace EstoqueAPI.DTOs
         DateTime DataSolicitacao,
         string Status,
         string? Observacao,
-        List<SolicitacaoItemResponseDTO> Itens
+        List<SolicitacaoItemResponseDTO> Itens,
+        DateTime? DataEntrega,
+        string? EntreguePor
     );
 
     /// <summary>

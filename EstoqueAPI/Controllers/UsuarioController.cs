@@ -79,6 +79,23 @@ namespace EstoqueAPI.Controllers
             }
         }
 
+        [HttpPut("{id}/senha")]
+        public async Task<IActionResult> RedefinirSenha(int id, [FromBody] UsuarioSenhaDTO dto)
+        {
+            try
+            {
+                var ok = await _usuarioService.RedefinirSenhaPorAdminAsync(id, dto.Senha);
+                if (!ok)
+                    return NotFound(new { message = "Usuário não encontrado." });
+
+                return NoContent();
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new { message = "Erro ao redefinir a senha do usuário." });
+            }
+        }
+
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {

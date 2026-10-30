@@ -7,7 +7,8 @@ export default function FuncionariosIndex() {
     isLoading,
     fetchFuncionarios,
     createFuncionario,
-    toggleStatus
+    toggleStatus,
+    redefinirSenha
   } = useFuncionarios();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -48,6 +49,24 @@ export default function FuncionariosIndex() {
     const acao = func.ativo ? 'desativar' : 'ativar';
     if (window.confirm(`Tem certeza que deseja ${acao} o funcionário ${func.nome}?`)) {
       toggleStatus(func);
+    }
+  };
+
+  // --- Redefinição de senha pelo ADMIN (para quem esqueceu o acesso) ---
+  const handleRedefinirSenha = async (func) => {
+    const novaSenha = window.prompt(`Digite a NOVA senha para ${func.nome} (${func.email}):\n\nMínimo de 8 caracteres.`);
+    if (novaSenha === null) return; // cancelado
+    if (novaSenha.length < 8) {
+      alert('A senha deve ter no mínimo 8 caracteres.');
+      return;
+    }
+    if (!window.confirm(`Confirmar a redefinição da senha de ${func.nome}?`)) return;
+
+    const result = await redefinirSenha(func.id, novaSenha);
+    if (result.success) {
+      alert(`Senha de ${func.nome} redefinida com sucesso.`);
+    } else {
+      alert(result.message || 'Erro ao redefinir a senha.');
     }
   };
 
@@ -102,6 +121,7 @@ const funcionariosFiltrados = funcionarios.filter((func) => {
               <th className="px-6 py-4 font-bold text-left">Admissão</th>
               <th className="px-6 py-4 font-bold text-left">Cargo</th>
               <th className="px-6 py-4 font-bold text-center">Status</th>
+              <th className="px-6 py-4 font-bold text-right">Ações</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -135,6 +155,16 @@ const funcionariosFiltrados = funcionarios.filter((func) => {
                   }`}
                 >
                   {func.ativo ? '● Ativo' : '○ Inativo'}
+                </button>
+              </td>
+              <td className="px-6 py-4 text-right whitespace-nowrap">
+                <button
+                  onClick={() => handleRedefinirSenha(func)}
+                  disabled={isLoading}
+                  className="text-[#007F45] hover:underline text-sm font-semibold disabled:opacity-50"
+                  title="Definir uma nova senha para este usuário"
+                >
+                  Redefinir senha
                 </button>
               </td>
             </tr>

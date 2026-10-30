@@ -156,6 +156,26 @@ export function useFuncionarios() {
     }
   };
 
+  // --- Redefinição de senha pelo ADMIN (PUT /usuario/{id}/senha) ---
+  const redefinirSenha = async (id, senha) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`${API_BASE_URL}/usuario/${id}/senha`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify({ senha }),
+      });
+      await handleResponse(response);
+      return { success: true };
+    } catch (err) {
+      setError(err.message);
+      return { success: false, message: err.message };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return {
     funcionarios,
     isLoading,
@@ -164,5 +184,6 @@ export function useFuncionarios() {
     createFuncionario,
     updateFuncionario,
     toggleStatus,
+    redefinirSenha,
   };
 }

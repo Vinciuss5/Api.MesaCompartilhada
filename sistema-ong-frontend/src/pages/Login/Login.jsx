@@ -98,6 +98,13 @@ export default function Login() {
               "Entrar no Sistema"
             )}
           </button>
+
+          {/* Recuperação de senha */}
+          <div className="text-center">
+            <a href="/esqueci-senha" className="text-sm text-green-700 font-semibold hover:underline">
+              Esqueci minha senha
+            </a>
+          </div>
         </div>
       </form>
     </div>

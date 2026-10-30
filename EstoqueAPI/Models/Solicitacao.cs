@@ -24,6 +24,12 @@ namespace EstoqueAPI.Models
         [StringLength(255)]
         public string? Observacao { get; set; }
 
+        // --- Confirmação de entrega (rastreabilidade) ---
+        public DateTime? DataEntrega { get; set; }
+
+        [StringLength(80)]
+        public string? EntreguePor { get; set; }
+
         // --- Relacionamentos (Navegação) ---
 
         // CORREÇÃO CRÍTICA: O nameof garante que o EF ligue esta propriedade ao SolicitanteId acima.

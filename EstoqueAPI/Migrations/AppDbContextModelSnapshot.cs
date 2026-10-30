@@ -71,6 +71,9 @@ namespace EstoqueAPI.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("Ativo")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("CPF")
                         .HasMaxLength(11)
                         .HasColumnType("TEXT");
@@ -175,13 +178,50 @@ namespace EstoqueAPI.Migrations
                     b.ToTable("Produtos");
                 });
 
+            modelBuilder.Entity("EstoqueAPI.Models.SenhaResetToken", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("ExpiraEm")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("Usado")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("UsuarioId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Token")
+                        .IsUnique();
+
+                    b.HasIndex("UsuarioId");
+
+                    b.ToTable("SenhaResetTokens");
+                });
+
             modelBuilder.Entity("EstoqueAPI.Models.Solicitacao", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<DateTime?>("DataEntrega")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime>("DataSolicitacao")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("EntreguePor")
+                        .HasMaxLength(80)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Observacao")
@@ -234,6 +274,9 @@ namespace EstoqueAPI.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("Ativo")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("CNPJ")
@@ -387,6 +430,17 @@ namespace EstoqueAPI.Migrations
                         .WithMany("Logs")
                         .HasForeignKey("UsuarioId")
                         .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Usuario");
+                });
+
+            modelBuilder.Entity("EstoqueAPI.Models.SenhaResetToken", b =>
+                {
+                    b.HasOne("EstoqueAPI.Models.Usuario", "Usuario")
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Usuario");

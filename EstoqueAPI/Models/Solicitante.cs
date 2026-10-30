@@ -37,6 +37,9 @@ namespace EstoqueAPI.Models
         [Required]
         public DateTime DataCadastro { get; set; } = DateTime.UtcNow;
 
+        // Exclusão lógica: desativar mantém o histórico de solicitações vinculadas
+        public bool Ativo { get; set; } = true;
+
         // --- Relacionamentos (Navegação) ---
 
         /// <summary>

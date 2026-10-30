@@ -8,6 +8,7 @@ namespace EstoqueAPI.Services
         Task<SolicitanteResponseDTO?> BuscarPorIdAsync(int id);
         Task<SolicitanteResponseDTO> CriarAsync(SolicitanteCreateDTO dto);
         Task<bool> AtualizarAsync(int id, SolicitanteUpdateDTO dto);
-        Task<bool> ExcluirAsync(int id);
+        Task<bool> ExcluirAsync(int id);   // Exclusão lógica (desativa)
+        Task<bool> RestaurarAsync(int id); // Reativa um solicitante desativado
     }
 }

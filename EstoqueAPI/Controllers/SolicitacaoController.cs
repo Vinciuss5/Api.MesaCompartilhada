@@ -77,7 +77,10 @@ namespace EstoqueAPI.Controllers
         {
             try
             {
-                var sucesso = await _solicitacaoService.AtualizarStatusAsync(id, dto.NovoStatus);
+                // Quem confirma a entrega fica registrado na solicitação
+                var responsavel = User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value;
+
+                var sucesso = await _solicitacaoService.AtualizarStatusAsync(id, dto.NovoStatus, responsavel);
 
                 if (!sucesso)
                     return NotFound(new { message = "Solicitação não encontrada para atualização." });

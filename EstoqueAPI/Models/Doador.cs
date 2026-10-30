@@ -28,6 +28,9 @@ namespace EstoqueAPI.Models
         [StringLength(150)]
         public string? Endereco { get; set; }
 
+        // Exclusão lógica: desativar mantém histórico de doações vinculadas
+        public bool Ativo { get; set; } = true;
+
         // --- Relacionamentos (Navegação) ---
 
         /// <summary>

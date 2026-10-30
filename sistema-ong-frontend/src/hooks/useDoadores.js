@@ -45,5 +45,49 @@ export const useDoadores = () => {
     return await response.json();
   };
 
-  return { doadores, loading, error, fetchDoadores, createDoador, primeiraExecucao };
+  // --- Edição (PUT /doador/{id}) ---
+  const updateDoador = async (id, DoadorDTO) => {
+    const response = await fetch(`${DOADOR_URL}/${id}`, {
+      method: 'PUT',
+      headers: authHeaders(),
+      body: JSON.stringify(DoadorDTO)
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Erro ao atualizar o doador');
+    }
+    // Recarrega a lista para refletir a alteração
+    await fetchDoadores();
+    return true;
+  };
+
+  // --- Exclusão lógica: desativar (DELETE /doador/{id}) ---
+  const desativarDoador = async (id) => {
+    const response = await fetch(`${DOADOR_URL}/${id}`, {
+      method: 'DELETE',
+      headers: authHeaders()
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Erro ao desativar o doador');
+    }
+    await fetchDoadores();
+    return true;
+  };
+
+  // --- Reativar um doador desativado (POST /doador/{id}/restaurar) ---
+  const restaurarDoador = async (id) => {
+    const response = await fetch(`${DOADOR_URL}/${id}/restaurar`, {
+      method: 'POST',
+      headers: authHeaders()
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Erro ao reativar o doador');
+    }
+    await fetchDoadores();
+    return true;
+  };
+
+  return { doadores, loading, error, fetchDoadores, createDoador, updateDoador, desativarDoador, restaurarDoador, primeiraExecucao };
 };

@@ -19,6 +19,7 @@ namespace EstoqueAPI.Data
         public DbSet<Solicitacao> Solicitacoes { get; set; }
         public DbSet<SolicitacaoItem> SolicitacaoItens { get; set; }
         public DbSet<Logs> Logs { get; set; }
+        public DbSet<SenhaResetToken> SenhaResetTokens { get; set; }
 
         public override int SaveChanges()
         {
@@ -131,6 +132,15 @@ namespace EstoqueAPI.Data
                       .WithMany(u => u.Logs)
                       .HasForeignKey(l => l.UsuarioId)
                       .OnDelete(DeleteBehavior.Restrict); // Mudado para Restrict por segurança
+            });
+
+            // --- TOKENS DE RECUPERAÇÃO DE SENHA ---
+            modelBuilder.Entity<SenhaResetToken>(entity => {
+                entity.HasIndex(t => t.Token).IsUnique();
+                entity.HasOne(t => t.Usuario)
+                      .WithMany()
+                      .HasForeignKey(t => t.UsuarioId)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
 
             // --- SEEDING (Versão Blindada) ---

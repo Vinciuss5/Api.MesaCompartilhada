@@ -110,7 +110,7 @@ namespace EstoqueAPI.Services
             return _mapper.Map<SolicitacaoResponseDTO>(solicitacao);
         }
 
-        public async Task<bool> AtualizarStatusAsync(int id, string novoStatus)
+        public async Task<bool> AtualizarStatusAsync(int id, string novoStatus, string? responsavel = null)
         {
             var novoStatusUpper = novoStatus.ToUpper();
 
@@ -164,8 +164,14 @@ namespace EstoqueAPI.Services
                         }
                     }
 
-                    // 3. Atualiza o Status
+                    // 3. Atualiza o Status (e registra a confirmação de entrega)
                     solicitacao.Status = novoStatusUpper;
+
+                    if (novoStatusUpper == "ENTREGUE")
+                    {
+                        solicitacao.DataEntrega = DateTime.UtcNow;
+                        solicitacao.EntreguePor = responsavel ?? "Não informado";
+                    }
 
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();

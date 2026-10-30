@@ -93,7 +93,9 @@ namespace EstoqueAPI.Mappings
                     src.DataSolicitacao,
                     src.Status.ToString(),
                     src.Observacao,
-                    context.Mapper.Map<List<SolicitacaoItemResponseDTO>>(src.Itens)
+                    context.Mapper.Map<List<SolicitacaoItemResponseDTO>>(src.Itens),
+                    src.DataEntrega,
+                    src.EntreguePor
                 ));
 
             // Mapeamentos de entrada (Create)

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSolicitantes } from '../../hooks/useSolicitantes';
 import {
   formatarCPF,
@@ -10,16 +10,20 @@ import {
   validarCNPJ,
   buscarEnderecoPorCep
 } from '../../services/documentos';
+import { exportarCSV, sufixoData } from '../../services/exportarCSV';
 
 export default function SolicitantesIndex() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editandoId, setEditandoId] = useState(null); // null = cadastro | id = edição
   const [searchTerm, setSearchTerm] = useState('');
-  const { solicitantes, loading, fetchSolicitantes, createSolicitante, primeiraExecucao } = useSolicitantes();
+  const [filtroStatus, setFiltroStatus] = useState('ativos');
+  const { solicitantes, loading, fetchSolicitantes, createSolicitante, updateSolicitante, desativarSolicitante, restaurarSolicitante, primeiraExecucao } = useSolicitantes();
 
   // tipoPessoa: 'F' = pessoa física (CPF) | 'J' = empresa/razão social (CNPJ)
   const formInicial = { nome: '', email: '', cpf: '', cnpj: '', telefone: '', cep: '', enderecoEntrega: '' };
   const [tipoPessoa, setTipoPessoa] = useState('F');
   const [formData, setFormData] = useState(formInicial);
+  const arquivoInputRef = useRef(null);
 
   const stripMask = (value) => (value || '').replace(/\D/g, '');
 
@@ -60,6 +64,30 @@ export default function SolicitantesIndex() {
     setFormData(prev => ({ ...prev, cpf: tipo === 'F' ? prev.cpf : '', cnpj: tipo === 'J' ? prev.cnpj : '' }));
   };
 
+  // --- Abrir modal: novo cadastro ou edição ---
+  const abrirNovo = () => {
+    setEditandoId(null);
+    setFormData(formInicial);
+    setTipoPessoa('F');
+    setIsModalOpen(true);
+  };
+
+  const abrirEdicao = (s) => {
+    setEditandoId(s.id);
+    // Detecta o tipo pelo documento existente
+    setTipoPessoa(s.cnpj ? 'J' : 'F');
+    setFormData({
+      nome: s.nome || '',
+      email: s.email || '',
+      cpf: formatarCPF(s.cpf || ''),
+      cnpj: formatarCNPJ(s.cnpj || ''),
+      telefone: formatarTelefone(s.telefone || ''),
+      cep: '',
+      enderecoEntrega: s.enderecoEntrega || ''
+    });
+    setIsModalOpen(true);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -81,16 +109,151 @@ export default function SolicitantesIndex() {
       cnpj: tipoPessoa === 'J' ? stripMask(formData.cnpj) : null
     };
 
-    const result = await createSolicitante(dataToSubmit);
+    const result = editandoId
+      ? await updateSolicitante(editandoId, dataToSubmit)
+      : await createSolicitante(dataToSubmit);
 
     if (result.success) {
       setIsModalOpen(false);
       setFormData(formInicial);
       setTipoPessoa('F');
-      fetchSolicitantes();
+      setEditandoId(null);
+      fetchSolicitantes(searchTerm);
     } else {
-      alert(result.error);
+      alert(result.error || result.message);
     }
+  };
+
+  // --- Exclusão lógica: desativar (mantém histórico) ---
+  const handleDesativar = async (s) => {
+    if (!window.confirm(`Desativar o solicitante "${s.nome}"? O histórico de solicitações será mantido e você poderá reativá-lo quando quiser.`)) return;
+    try {
+      await desativarSolicitante(s.id);
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const handleRestaurar = async (s) => {
+    try {
+      await restaurarSolicitante(s.id);
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  // --- Filtro de status aplicado no cliente ---
+  const solicitantesFiltrados = solicitantes.filter((s) => {
+    if (filtroStatus === 'ativos') return s.ativo;
+    if (filtroStatus === 'inativos') return !s.ativo;
+    return true;
+  });
+
+  // --- Exportar CSV ---
+  const exportar = () => {
+    exportarCSV(
+      `solicitantes-${sufixoData()}.csv`,
+      ['Nome', 'E-mail', 'Telefone', 'CPF', 'CNPJ', 'Endereço de Entrega', 'Status'],
+      solicitantesFiltrados.map((s) => [
+        s.nome,
+        s.email,
+        s.telefone,
+        s.cpf,
+        s.cnpj,
+        s.enderecoEntrega,
+        s.ativo ? 'Ativo' : 'Inativo',
+      ])
+    );
+  };
+
+  // --- Importar CSV em massa (template: nome;cpf;cnpj;telefone;email;enderecoentrega) ---
+  const handleImportarArquivo = async (e) => {
+    const arquivo = e.target.files?.[0];
+    e.target.value = '';
+    if (!arquivo) return;
+
+    const texto = await arquivo.text();
+    const linhas = texto.replace(/^\uFEFF/, '').split(/\r?\n/).filter((l) => l.trim() !== '');
+    if (linhas.length < 2) {
+      alert('O arquivo deve ter um cabeçalho e pelo menos uma linha de dados.');
+      return;
+    }
+
+    const sep = linhas[0].includes(';') ? ';' : ',';
+    const cabecalho = linhas[0].split(sep).map((c) => c.trim().toLowerCase());
+    const colNome = cabecalho.indexOf('nome');
+    const colCpf = cabecalho.indexOf('cpf');
+    const colCnpj = cabecalho.indexOf('cnpj');
+    const colTel = cabecalho.indexOf('telefone');
+    const colEmail = cabecalho.indexOf('email');
+    const colEnd = cabecalho.indexOf('enderecoentrega') !== -1 ? cabecalho.indexOf('enderecoentrega') : cabecalho.indexOf('endereco');
+
+    if (colNome === -1) {
+      alert('Cabeçalho inválido: é obrigatória uma coluna "nome".\nTemplate: nome;cpf;cnpj;telefone;email;enderecoentrega');
+      return;
+    }
+
+    const registros = linhas.slice(1).map((linha) => {
+      const c = linha.split(sep).map((v) => v.trim().replace(/^"|"$/g, ''));
+      return {
+        nome: c[colNome] || '',
+        cpf: colCpf !== -1 ? stripMask(c[colCpf] || '') : '',
+        cnpj: colCnpj !== -1 ? stripMask(c[colCnpj] || '') : '',
+        telefone: colTel !== -1 ? stripMask(c[colTel] || '') : '',
+        email: colEmail !== -1 ? c[colEmail] || '' : '',
+        enderecoEntrega: colEnd !== -1 ? c[colEnd] || '' : '',
+      };
+    }).filter((r) => r.nome !== '');
+
+    if (!window.confirm(`Importar ${registros.length} solicitante(s) do arquivo "${arquivo.name}"?`)) return;
+
+    let importados = 0;
+    const erros = [];
+    for (const [i, r] of registros.entries()) {
+      try {
+        // Um dos dois documentos é obrigatório (validado no backend também)
+        if (!r.cpf && !r.cnpj) {
+          erros.push(`Linha ${i + 2} (${r.nome}): informe o CPF ou o CNPJ.`);
+          continue;
+        }
+        if (r.cpf && !validarCPF(r.cpf)) {
+          erros.push(`Linha ${i + 2}: CPF inválido (${r.cpf})`);
+          continue;
+        }
+        if (r.cnpj && !validarCNPJ(r.cnpj)) {
+          erros.push(`Linha ${i + 2}: CNPJ inválido (${r.cnpj})`);
+          continue;
+        }
+        const payload = {
+          nome: r.nome,
+          email: r.email,
+          telefone: r.telefone,
+          enderecoEntrega: r.enderecoEntrega || 'Não informado',
+          cpf: r.cnpj ? null : r.cpf,
+          cnpj: r.cnpj || null,
+        };
+        const result = await createSolicitante(payload);
+        if (result.success === false) throw new Error(result.error || 'Erro ao cadastrar');
+        importados++;
+      } catch (err) {
+        erros.push(`Linha ${i + 2} (${r.nome}): ${err.message}`);
+      }
+    }
+
+    await fetchSolicitantes(searchTerm);
+
+    const resumo = `Importação concluída: ${importados} importado(s), ${erros.length} erro(s).`;
+    alert(erros.length > 0 ? `${resumo}\n\n${erros.slice(0, 10).join('\n')}${erros.length > 10 ? `\n... e mais ${erros.length - 10} erro(s).` : ''}` : resumo);
+  };
+
+  const baixarModelo = () => {
+    exportarCSV('modelo-importacao-solicitantes.csv',
+      ['nome', 'cpf', 'cnpj', 'telefone', 'email', 'enderecoentrega'],
+      [
+        ['João da Silva', '52998224725', '', '15996404717', 'joao@exemplo.com', 'Rua A, 10 - Centro, São Paulo - SP'],
+        ['Instituto Ajuda Ltda', '', '11222333000181', '15996404717', 'contato@instituto.com', 'Av. B, 200 - Vila, Campinas - SP'],
+      ]
+    );
   };
 
   return (
@@ -102,17 +265,39 @@ export default function SolicitantesIndex() {
           <h1 className="text-2xl font-bold text-[#2D3748]">Solicitantes</h1>
           <p className="text-sm text-[#718096] mt-1">Gestão de beneficiários e controle de entrega de donativos.</p>
         </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="bg-[#007F45] hover:bg-[#006838] text-white px-4 py-2 rounded-md font-medium transition-all flex items-center gap-2 text-sm shadow-sm"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-          Novo Solicitante
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={exportar}
+            disabled={solicitantesFiltrados.length === 0}
+            className="bg-white border border-gray-200 text-[#4A5568] px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-50 transition-all disabled:opacity-50"
+          >
+            Exportar CSV
+          </button>
+          <button
+            onClick={() => arquivoInputRef.current?.click()}
+            className="bg-white border border-gray-200 text-[#4A5568] px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-50 transition-all"
+          >
+            Importar CSV
+          </button>
+          <input
+            ref={arquivoInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            className="hidden"
+            onChange={handleImportarArquivo}
+          />
+          <button
+            onClick={abrirNovo}
+            className="bg-[#007F45] hover:bg-[#006838] text-white px-4 py-2 rounded-md font-medium transition-all flex items-center gap-2 text-sm shadow-sm"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            Novo Solicitante
+          </button>
+        </div>
       </div>
 
-      {/* Barra de Busca */}
-      <div className="bg-white p-4 rounded-lg shadow-sm mb-6 border border-gray-100">
+      {/* Barra de Busca + filtro de status */}
+      <div className="bg-white p-4 rounded-lg shadow-sm mb-6 border border-gray-100 flex flex-col sm:flex-row sm:items-center gap-4">
         <div className="relative w-full max-w-md">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <svg className="h-4 w-4 text-[#718096]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
@@ -125,25 +310,43 @@ export default function SolicitantesIndex() {
             className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-[#007F45] focus:border-[#007F45] transition-all"
           />
         </div>
+        <div className="flex items-center gap-1 bg-gray-100 rounded-md p-1">
+          {[['ativos', 'Ativos'], ['inativos', 'Inativos'], ['todos', 'Todos']].map(([valor, rotulo]) => (
+            <button
+              key={valor}
+              onClick={() => setFiltroStatus(valor)}
+              className={`px-3 py-1.5 rounded text-sm font-medium transition-all ${filtroStatus === valor ? 'bg-white text-[#007F45] shadow-sm' : 'text-[#718096] hover:text-[#2D3748]'}`}
+            >
+              {rotulo}
+            </button>
+          ))}
+        </div>
+        <button onClick={baixarModelo} className="text-xs text-[#007F45] font-semibold hover:underline sm:ml-auto">
+          Baixar modelo de importação
+        </button>
       </div>
 
       {/* Tabela de Dados - Layout Corrigido */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-x-auto">
-        <table className="w-full text-sm table-fixed min-w-[800px]">
+        <table className="w-full text-sm table-fixed min-w-[900px]">
           <thead className="bg-gray-50 border-b border-gray-100 text-[#718096]">
             <tr>
               <th className="px-6 py-4 font-semibold text-left w-3/12">Nome</th>
-              <th className="px-6 py-4 font-semibold text-left w-3/12">E-mail</th>
+              <th className="px-6 py-4 font-semibold text-left w-2/12">E-mail</th>
               <th className="px-6 py-4 font-semibold text-left w-2/12">Telefone</th>
               <th className="px-6 py-4 font-semibold text-left w-2/12">CPF / CNPJ</th>
-              <th className="px-6 py-4 font-semibold text-left w-4/12">Endereço de Entrega</th>
+              <th className="px-6 py-4 font-semibold text-left w-2/12">Endereço de Entrega</th>
+              <th className="px-6 py-4 font-semibold text-left w-1/12">Status</th>
+              <th className="px-6 py-4 font-semibold text-right w-2/12">Ações</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 text-[#2D3748]">
             {loading ? (
-              <tr><td colSpan="5" className="text-center py-10 animate-pulse">Carregando dados...</td></tr>
-            ) : solicitantes.map((s) => (
-              <tr key={s.id} className="hover:bg-gray-50 transition-colors">
+              <tr><td colSpan="7" className="text-center py-10 animate-pulse">Carregando dados...</td></tr>
+            ) : solicitantesFiltrados.length === 0 ? (
+              <tr><td colSpan="7" className="text-center py-10 text-[#718096]">Nenhum solicitante encontrado.</td></tr>
+            ) : solicitantesFiltrados.map((s) => (
+              <tr key={s.id} className={`hover:bg-gray-50 transition-colors ${!s.ativo ? 'opacity-60' : ''}`}>
                 <td className="px-6 py-4 font-bold text-left" title={s.nome}>
                   {s.nome}  
                 </td>
@@ -160,18 +363,48 @@ export default function SolicitantesIndex() {
                 <td className="px-6 py-4 text-left text-[#718096] whitespace-nowrap" title={s.enderecoEntrega}>
                   {s.enderecoEntrega}
                 </td>
+                <td className="px-6 py-4 text-left">
+                  {s.ativo ? (
+                    <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">Ativo</span>
+                  ) : (
+                    <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-200">Inativo</span>
+                  )}
+                </td>
+                <td className="px-6 py-4 text-right whitespace-nowrap">
+                  <button
+                    onClick={() => abrirEdicao(s)}
+                    className="text-[#007F45] hover:underline text-sm font-semibold mr-3"
+                  >
+                    Editar
+                  </button>
+                  {s.ativo ? (
+                    <button
+                      onClick={() => handleDesativar(s)}
+                      className="text-red-600 hover:underline text-sm font-semibold"
+                    >
+                      Desativar
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleRestaurar(s)}
+                      className="text-blue-600 hover:underline text-sm font-semibold"
+                    >
+                      Reativar
+                    </button>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      {/* Modal de Cadastro */}
+      {/* Modal de Cadastro/Edição */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-[#1A202C]/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-[700px] max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in duration-200">
             <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-white">
-              <h2 className="text-xl font-bold text-[#2D3748]">Cadastrar Novo Solicitante</h2>
+              <h2 className="text-xl font-bold text-[#2D3748]">{editandoId ? 'Editar Solicitante' : 'Cadastrar Novo Solicitante'}</h2>
               <button onClick={() => setIsModalOpen(false)} className="text-[#718096] hover:text-red-500 transition-colors">
                 <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 18L18 6M6 6l12 12"></path></svg>
               </button>
@@ -240,7 +473,7 @@ export default function SolicitantesIndex() {
               <div className="p-6 border-t border-gray-100 flex justify-end gap-4 bg-gray-50">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm font-semibold text-[#718096] hover:text-[#2D3748] transition-colors">Descartar</button>
                 <button type="submit" className="bg-[#007F45] hover:bg-[#006838] text-white px-8 py-2.5 rounded-md font-bold text-sm shadow-md hover:shadow-lg transition-all active:scale-95">
-                  Confirmar Cadastro
+                  {editandoId ? 'Salvar Alterações' : 'Confirmar Cadastro'}
                 </button>
               </div>
             </form>

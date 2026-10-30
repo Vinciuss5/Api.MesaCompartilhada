@@ -80,6 +80,7 @@ namespace EstoqueAPI.Controllers
         {
             try
             {
+                // Exclusão lógica: o solicitante é desativado e o histórico permanece
                 var excluido = await _service.ExcluirAsync(id);
                 if (!excluido)
                     return NotFound(new { message = "Solicitante não encontrado para exclusão." });
@@ -88,9 +89,18 @@ namespace EstoqueAPI.Controllers
             }
             catch (InvalidOperationException ex)
             {
-                // Captura erro caso o solicitante possua pedidos vinculados
                 return Conflict(new { message = ex.Message }); // Status 409: Conflito de integridade
             }
+        }
+
+        [HttpPost("{id}/restaurar")]
+        public async Task<IActionResult> Restaurar(int id)
+        {
+            var restaurado = await _service.RestaurarAsync(id);
+            if (!restaurado)
+                return NotFound(new { message = "Solicitante não encontrado." });
+
+            return NoContent();
         }
     }
 }

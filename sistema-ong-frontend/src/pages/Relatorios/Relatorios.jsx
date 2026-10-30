@@ -1,6 +1,7 @@
 import React from 'react';
 // Ajuste o caminho do import conforme a estrutura de pastas do seu projeto
 import { useRelatorios } from '../../hooks/useRelatorios'; 
+import { exportarCSV, sufixoData } from '../../services/exportarCSV';
 
 export default function RelatoriosDashboard() {
   const { 
@@ -11,6 +12,31 @@ export default function RelatoriosDashboard() {
     periodo, 
     setPeriodo 
   } = useRelatorios();
+
+  // Exporta o resumo do período + alertas + últimas solicitações em um único CSV
+  const exportar = () => {
+    const nomePeriodo = { MES_ATUAL: 'mes-atual', ULTIMOS_30: 'ultimos-30-dias', ANO: 'ano-completo' }[periodo] || periodo;
+    const linhas = [
+      ['RELATÓRIO — Mesa Compartilhada'],
+      ['Período', { MES_ATUAL: 'Este mês', ULTIMOS_30: 'Últimos 30 dias', ANO: 'Ano completo' }[periodo] || periodo],
+      [],
+      ['Indicador', 'Valor'],
+      ['Solicitações pendentes', kpis.solicitacoesPendentes],
+      ['Lotes vencendo em até 3 meses', kpis.produtosProximosVencimento],
+      ['Doações no período', kpis.doacoesMes],
+      ['Estoque total (kg/L)', kpis.estoqueTotalKg],
+      [],
+      ['LOTES PRÓXIMOS DO VENCIMENTO'],
+      ['Produto', 'Lote', 'Validade', 'Quantidade'],
+      ...alertasValidade.map((a) => [a.produto, a.lote, a.validade, a.quantidade]),
+      [],
+      ['ÚLTIMAS SOLICITAÇÕES'],
+      ['ID', 'Solicitante', 'Data', 'Status'],
+      ...ultimasSolicitacoes.map((s) => [s.id, s.solicitante, s.data, s.status]),
+    ];
+    // exportarCSV espera cabeçalho + linhas; aqui passamos tudo como linhas (sem cabeçalho fixo)
+    exportarCSV(`relatorio-${nomePeriodo}-${sufixoData()}.csv`, linhas[0], linhas.slice(1));
+  };
 
   // Tela de carregamento enquanto busca os dados de todos os endpoints
   if (isLoading) {
@@ -34,26 +60,35 @@ export default function RelatoriosDashboard() {
           <p className="text-sm text-[#718096] mt-1">Acompanhe a saúde do estoque e o fluxo de doações.</p>
         </div>
         
-        {/* Filtro de Período Conectado ao Hook */}
-        <div className="flex bg-white border border-gray-200 rounded-lg p-1 shadow-sm">
-          <button 
-            onClick={() => setPeriodo('MES_ATUAL')}
-            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${periodo === 'MES_ATUAL' ? 'bg-[#EDF2F7] text-[#2D3748]' : 'text-[#718096] hover:text-[#2D3748]'}`}
+        {/* Filtro de Período Conectado ao Hook + exportação */}
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={exportar}
+            className="bg-white border border-gray-200 text-[#4A5568] px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-all shadow-sm flex items-center gap-2"
           >
-            Este Mês
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            Exportar CSV
           </button>
-          <button 
-            onClick={() => setPeriodo('ULTIMOS_30')}
-            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${periodo === 'ULTIMOS_30' ? 'bg-[#EDF2F7] text-[#2D3748]' : 'text-[#718096] hover:text-[#2D3748]'}`}
-          >
-            Últimos 30 dias
-          </button>
-          <button 
-            onClick={() => setPeriodo('ANO')}
-            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${periodo === 'ANO' ? 'bg-[#EDF2F7] text-[#2D3748]' : 'text-[#718096] hover:text-[#2D3748]'}`}
-          >
-            Ano Completo
-          </button>
+          <div className="flex bg-white border border-gray-200 rounded-lg p-1 shadow-sm">
+            <button 
+              onClick={() => setPeriodo('MES_ATUAL')}
+              className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${periodo === 'MES_ATUAL' ? 'bg-[#EDF2F7] text-[#2D3748]' : 'text-[#718096] hover:text-[#2D3748]'}`}
+            >
+              Este Mês
+            </button>
+            <button 
+              onClick={() => setPeriodo('ULTIMOS_30')}
+              className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${periodo === 'ULTIMOS_30' ? 'bg-[#EDF2F7] text-[#2D3748]' : 'text-[#718096] hover:text-[#2D3748]'}`}
+            >
+              Últimos 30 dias
+            </button>
+            <button 
+              onClick={() => setPeriodo('ANO')}
+              className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${periodo === 'ANO' ? 'bg-[#EDF2F7] text-[#2D3748]' : 'text-[#718096] hover:text-[#2D3748]'}`}
+            >
+              Ano Completo
+            </button>
+          </div>
         </div>
       </div>
 

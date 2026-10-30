@@ -72,6 +72,14 @@ namespace EstoqueAPI.Services
 
             if (doadorExistente == null) return false;
 
+            // RN: CPF duplicado em atualização (só valida se o CPF mudou e foi informado)
+            if (!string.IsNullOrWhiteSpace(dto.CPF) && doadorExistente.CPF != dto.CPF)
+            {
+                var cpfEmUso = await _context.Doadores.AnyAsync(d => d.CPF == dto.CPF && d.Id != id);
+                if (cpfEmUso)
+                    throw new InvalidOperationException("Já existe um doador cadastrado com este CPF.");
+            }
+
             // Mapeia as alterações do DTO para a Model rastreada
             _mapper.Map(dto, doadorExistente);
 
@@ -85,9 +93,18 @@ namespace EstoqueAPI.Services
 
             if (doador == null) return false;
 
-            // RN: Antes de excluir, poderíamos verificar se ele tem doações vinculadas
-            // Para manter a integridade, o SQL Server impedirá a exclusão se houver doações.
-            _context.Doadores.Remove(doador);
+            // Exclusão LÓGICA: mantém o histórico de doações vinculadas intacto
+            doador.Ativo = false;
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> RestaurarAsync(int id)
+        {
+            var doador = await _context.Doadores.FindAsync(id);
+            if (doador == null) return false;
+
+            doador.Ativo = true;
             await _context.SaveChangesAsync();
             return true;
         }

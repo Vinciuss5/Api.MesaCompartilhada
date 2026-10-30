@@ -115,18 +115,20 @@ namespace EstoqueAPI.Services
             var solicitante = await _context.Solicitantes.FindAsync(id);
             if (solicitante == null) return false;
 
-            // Nota do Tech Lead: Se houver solicitações vinculadas, o banco lançará uma 
-            // exceção de DbUpdateException devido à integridade referencial
-            try
-            {
-                _context.Solicitantes.Remove(solicitante);
-                await _context.SaveChangesAsync();
-                return true;
-            }
-            catch (DbUpdateException)
-            {
-                throw new InvalidOperationException("Não é possível excluir um solicitante que possui pedidos registrados.");
-            }
+            // Exclusão LÓGICA: mantém o histórico de solicitações vinculadas intacto
+            solicitante.Ativo = false;
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> RestaurarAsync(int id)
+        {
+            var solicitante = await _context.Solicitantes.FindAsync(id);
+            if (solicitante == null) return false;
+
+            solicitante.Ativo = true;
+            await _context.SaveChangesAsync();
+            return true;
         }
     }
 }

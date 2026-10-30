@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSolicitacao } from '../../hooks/useSolicitacao';
 import { useSolicitantes } from '../../hooks/useSolicitantes';
 import { useProdutos } from '../../hooks/useProdutos';
+import { exportarCSV, sufixoData } from '../../services/exportarCSV';
 
 export default function SaidaSolicitacoes() {
   // Hooks de Dados
@@ -105,6 +106,35 @@ export default function SaidaSolicitacoes() {
     s.id.toString().includes(filtro)
   );
 
+  // --- Confirmação de entrega com rastreabilidade ---
+  const handleConfirmarEntrega = async (item) => {
+    if (!window.confirm(`Confirmar a entrega da solicitação #${item.id} para "${item.nomeSolicitante}"?\n\nA data e o responsável pela entrega ficarão registrados.`)) return;
+    await atualizarStatus(item.id, 'ENTREGUE');
+  };
+
+  const handleCancelar = async (item) => {
+    if (!window.confirm(`Cancelar a solicitação #${item.id} de "${item.nomeSolicitante}"?`)) return;
+    await atualizarStatus(item.id, 'CANCELADO');
+  };
+
+  // --- Exportar CSV do histórico de solicitações ---
+  const exportar = () => {
+    exportarCSV(
+      `solicitacoes-${sufixoData()}.csv`,
+      ['ID', 'Data', 'Solicitante', 'Status', 'Itens', 'Observação', 'Data Entrega', 'Entregue Por'],
+      solicitacoesFiltradas.map((s) => [
+        s.id,
+        new Date(s.dataSolicitacao).toLocaleDateString('pt-BR'),
+        s.nomeSolicitante,
+        s.status,
+        (s.itens || []).map((i) => `${i.nomeProduto} x ${i.quantidade}`).join(' | '),
+        s.observacao || '',
+        s.dataEntrega ? new Date(s.dataEntrega).toLocaleString('pt-BR') : '',
+        s.entreguePor || '',
+      ])
+    );
+  };
+
   return (
 <div className="min-h-screen bg-[#F8F9FA] text-[#2D3748] p-6 md:p-4 md:p-8 font-sans">
   
@@ -114,12 +144,21 @@ export default function SaidaSolicitacoes() {
       <h1 className="text-2xl font-bold text-gray-800">Saída de Solicitações</h1>
       <p className="text-sm text-gray-500 mt-1">Controle de entregas e baixas de estoque corporativo.</p>
     </div>
-    <button 
-      onClick={() => setIsModalOpen(true)}
-      className="bg-[#007F45] hover:bg-[#006838] text-white px-5 py-2.5 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 shadow-sm hover:shadow-md"
-    >
-      <span className="text-lg leading-none">+</span> Nova Solicitação
-    </button>
+    <div className="flex flex-wrap items-center gap-2">
+      <button
+        onClick={exportar}
+        disabled={solicitacoesFiltradas.length === 0}
+        className="bg-white border border-gray-200 text-[#4A5568] px-4 py-2.5 rounded-lg font-medium text-sm hover:bg-gray-50 transition-all disabled:opacity-50"
+      >
+        Exportar CSV
+      </button>
+      <button 
+        onClick={() => setIsModalOpen(true)}
+        className="bg-[#007F45] hover:bg-[#006838] text-white px-5 py-2.5 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 shadow-sm hover:shadow-md"
+      >
+        <span className="text-lg leading-none">+</span> Nova Solicitação
+      </button>
+    </div>
   </div>
 
   {/* BARRA DE PESQUISA */}
@@ -185,13 +224,13 @@ export default function SaidaSolicitacoes() {
                   {item.status === 'PENDENTE' && (
                   <div className="flex justify-center gap-2">
                     <button 
-                      onClick={() => atualizarStatus(item.id, 'ENTREGUE')}
+                      onClick={() => handleConfirmarEntrega(item)}
                       className="text-emerald-600 hover:bg-emerald-50 px-2 py-1 rounded text-xs font-medium border border-emerald-100 transition-all" 
                     >
                       Confirmar
                     </button>
                     <button 
-                      onClick={() => atualizarStatus(item.id, 'CANCELADO')}
+                      onClick={() => handleCancelar(item)}
                       className="text-red-600 hover:bg-red-50 px-2 py-1 rounded text-xs font-medium border border-red-100 transition-all" 
                     >
                       Cancelar
@@ -229,6 +268,21 @@ export default function SaidaSolicitacoes() {
                             <strong className="text-gray-800 block mb-1">Observações:</strong> 
                             {item.observacao || <span className="text-gray-400 italic">Nenhuma observação registrada.</span>}
                           </p>
+                          {/* Rastreabilidade da entrega (quando confirmada) */}
+                          {item.status === 'ENTREGUE' && (
+                            <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-3 space-y-1">
+                              <p className="text-emerald-800 text-xs font-bold uppercase tracking-wider">Entrega confirmada</p>
+                              <p className="text-gray-600 text-xs">
+                                <strong>Data:</strong>{' '}
+                                {item.dataEntrega
+                                  ? new Date(item.dataEntrega).toLocaleString('pt-BR')
+                                  : 'Não registrada'}
+                              </p>
+                              <p className="text-gray-600 text-xs">
+                                <strong>Responsável:</strong> {item.entreguePor || 'Não informado'}
+                              </p>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>

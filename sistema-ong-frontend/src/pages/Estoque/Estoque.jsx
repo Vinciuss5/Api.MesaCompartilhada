@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useEstoque } from '../../hooks/useEstoque'; // Ajuste o caminho conforme a sua estrutura de pastas
+import { exportarCSV, sufixoData } from '../../services/exportarCSV';
 
 export default function EstoqueIndex() {
   const { estoque, isLoading, error, fetchEstoque, createProduto } = useEstoque(); 
@@ -35,20 +36,39 @@ export default function EstoqueIndex() {
   // Estados para os filtros
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('Todos os Status');
+  const [validadeFilter, setValidadeFilter] = useState('Todas as Validades');
 
   // Busca os dados assim que a tela é montada
   useEffect(() => {
     fetchEstoque();
   }, [fetchEstoque]);
 
+  // --- Auxiliares de validade (declarados antes dos useMemo que os usam) ---
+  // Calcula os dias até o vencimento de um item (null se sem validade)
+  const diasParaVencer = (validade) => {
+    if (!validade || validade === 'N/A') return null;
+    const [dia, mes, ano] = validade.split('/');
+    const dataValidade = new Date(`${ano}-${mes}-${dia}T00:00:00`);
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    return Math.ceil((dataValidade.getTime() - hoje.getTime()) / (1000 * 3600 * 24));
+  };
+
+  // Vencido: data já passou | Vencendo: até 30 dias
+  const isVencido = (item) => { const d = diasParaVencer(item.validade); return d !== null && d < 0 && item.qtd > 0; };
+  const isVencendo = (item) => { const d = diasParaVencer(item.validade); return d !== null && d >= 0 && d <= 30 && item.qtd > 0; };
+
+  const checkVencimentoProximo = (validade) => {
+    const diffDias = diasParaVencer(validade);
+    return diffDias !== null && diffDias > 0 && diffDias <= 90;
+  };
+
   // 1. Lógica dos Mini Relatórios (KPIs) calculada dinamicamente
-// 1. Lógica dos Mini Relatórios (KPIs) calculada dinamicamente
   const metrics = useMemo(() => {
     let skusAtivos = 0;
     let baixoEstoque = 0; // Mudamos o nome aqui
     let vencimentoProximo = 0;
-
-    const hoje = new Date();
+    let vencidos = 0;
 
     estoque.forEach(item => {
       // Conta SKUs ativos (que têm pelo menos 1 item no estoque)
@@ -59,21 +79,16 @@ export default function EstoqueIndex() {
         baixoEstoque++;
       }
 
-      // Calcula proximidade de vencimento (90 dias)
-      if (item.validade && item.validade !== 'N/A') {
-        const [dia, mes, ano] = item.validade.split('/');
-        const dataValidade = new Date(`${ano}-${mes}-${dia}T00:00:00`);
-        
-        const diffTempo = dataValidade.getTime() - hoje.getTime();
-        const diffDias = Math.ceil(diffTempo / (1000 * 3600 * 24));
-        
-        if (diffDias > 0 && diffDias <= 90 && item.qtd > 0) { // Adicionamos item.qtd > 0 aqui também
-          vencimentoProximo++;
-        }
+      // Vencidos: validade já passou e ainda há estoque
+      if (isVencido(item)) vencidos++;
+
+      // Calcula proximidade de vencimento (30 dias)
+      if (isVencendo(item)) {
+        vencimentoProximo++;
       }
     });
 
-    return { skusAtivos, baixoEstoque, vencimentoProximo }; // Retornamos baixoEstoque
+    return { skusAtivos, baixoEstoque, vencimentoProximo, vencidos };
   }, [estoque]);
 
   // 2. Lógica do Filtro Robusto
@@ -97,9 +112,15 @@ export default function EstoqueIndex() {
         statusFilter === 'Todos os Status' || 
         statusItem === statusFilter.toLowerCase();
 
-      return matchBusca && matchStatus;
+      // Filtro de validade: vencidos / vencendo em 30 dias
+      let matchValidade = true;
+      if (validadeFilter === 'Vencidos') matchValidade = isVencido(item);
+      else if (validadeFilter === 'Vencendo (30 dias)') matchValidade = isVencendo(item);
+      else if (validadeFilter === 'Sem validade') matchValidade = !item.validade || item.validade === 'N/A';
+
+      return matchBusca && matchStatus && matchValidade;
     });
-  }, [estoque, searchTerm, statusFilter]);
+  }, [estoque, searchTerm, statusFilter, validadeFilter]);
 
   const getStatusColor = (status) => {
     // Normalizando a string para evitar quebras por diferenças de casing
@@ -112,16 +133,6 @@ export default function EstoqueIndex() {
     }
   };
 
-  const checkVencimentoProximo = (validade) => {
-  if (!validade || validade === 'N/A') return false;
-  const [dia, mes, ano] = validade.split('/');
-  const dataValidade = new Date(`${ano}-${mes}-${dia}T00:00:00`);
-  const hoje = new Date();
-  const diffTempo = dataValidade.getTime() - hoje.getTime();
-  const diffDias = Math.ceil(diffTempo / (1000 * 3600 * 24));
-  return diffDias > 0 && diffDias <= 90;
-};
-
   return (
     <div className="min-h-screen bg-[#F8F9FA] text-[#2D3748] p-4 md:p-8 font-sans">
       
@@ -131,19 +142,35 @@ export default function EstoqueIndex() {
           <h1 className="text-2xl font-bold text-[#2D3748]">Controle de Estoque</h1>
           <p className="text-sm text-[#718096] mt-1">Gestão inteligente de itens e prazos.</p>
         </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="bg-[#007F45] hover:bg-[#006838] text-white px-4 py-2 rounded-md font-medium transition-colors flex items-center gap-2 text-sm shadow-sm"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>
-          </svg>
-          Cadastrar Produto
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => exportarCSV(
+              `estoque-${sufixoData()}.csv`,
+              ['Produto', 'Qtd', 'Peso (kg/un)', 'Status', 'Origem', 'Entrada', 'Validade', 'Alerta'],
+              estoqueFiltrado.map((i) => [
+                i.nome, i.qtd, i.peso, i.status, i.origem, i.entrada, i.validade,
+                isVencido(i) ? 'VENCIDO' : (isVencendo(i) ? 'Vencendo em até 30 dias' : (checkVencimentoProximo(i.validade) ? 'Vence em até 90 dias' : '')),
+              ])
+            )}
+            disabled={estoqueFiltrado.length === 0}
+            className="bg-white border border-gray-200 text-[#4A5568] px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-50 transition-all disabled:opacity-50"
+          >
+            Exportar CSV
+          </button>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="bg-[#007F45] hover:bg-[#006838] text-white px-4 py-2 rounded-md font-medium transition-colors flex items-center gap-2 text-sm shadow-sm"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Cadastrar Produto
+          </button>
+        </div>
       </div>
 
       {/* DASHBOARD CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
         <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between">
           <span className="text-xs uppercase tracking-wider font-bold text-[#718096]">Total de Itens</span>
           <div className="flex items-baseline gap-2 mt-2">
@@ -161,10 +188,18 @@ export default function EstoqueIndex() {
       </div>
 
         <div className="bg-white p-5 rounded-xl border-l-4 border-l-orange-400 shadow-sm flex flex-col justify-between border-y border-r border-gray-100">
-          <span className="text-xs uppercase tracking-wider font-bold text-[#718096]">Próximos ao Vencimento</span>
+          <span className="text-xs uppercase tracking-wider font-bold text-[#718096]">Vencendo (30 dias)</span>
           <div className="flex items-baseline gap-2 mt-2">
             <span className="text-3xl font-extrabold text-orange-600">{metrics.vencimentoProximo}</span>
-            <span className="text-xs text-orange-400">Prox. 3 Meses</span>
+            <span className="text-xs text-orange-400">Prioridade alta</span>
+          </div>
+        </div>
+
+        <div className={`bg-white p-5 rounded-xl shadow-sm flex flex-col justify-between border ${metrics.vencidos > 0 ? 'border-l-4 border-l-red-500 border-y border-r border-red-100' : 'border-gray-100'}`}>
+          <span className="text-xs uppercase tracking-wider font-bold text-[#718096]">Lotes Vencidos</span>
+          <div className="flex items-baseline gap-2 mt-2">
+            <span className="text-3xl font-extrabold text-red-600">{metrics.vencidos}</span>
+            <span className="text-xs text-red-500 font-medium">Descartar / revisar</span>
           </div>
         </div>
       </div>
@@ -185,7 +220,7 @@ export default function EstoqueIndex() {
             className="block w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#007F45]/20 focus:border-[#007F45] outline-none"
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
             <select 
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
@@ -194,6 +229,16 @@ export default function EstoqueIndex() {
                 <option value="Todos os Status">Todos os Status</option>
                 <option value="Disponível">Disponível</option>
                 <option value="Baixo estoque">Baixo Estoque</option>
+            </select>
+            <select
+              value={validadeFilter}
+              onChange={(e) => setValidadeFilter(e.target.value)}
+              className="py-2 px-3 border border-gray-200 rounded-lg text-sm focus:border-[#007F45] outline-none bg-white font-medium"
+            >
+                <option value="Todas as Validades">Todas as Validades</option>
+                <option value="Vencidos">Vencidos</option>
+                <option value="Vencendo (30 dias)">Vencendo (30 dias)</option>
+                <option value="Sem validade">Sem validade</option>
             </select>
         </div>
       </div>
@@ -234,9 +279,26 @@ export default function EstoqueIndex() {
                 </tr>
               ) : (
                 estoqueFiltrado.map((item) => (
-                  <tr key={item.id} className="hover:bg-gray-50/80 transition-all cursor-default">
+                  <tr
+                    key={item.id}
+                    className={`transition-all cursor-default ${
+                      isVencido(item)
+                        ? 'bg-red-50/70 hover:bg-red-50 border-l-4 border-l-red-500'
+                        : isVencendo(item)
+                          ? 'bg-amber-50/50 hover:bg-amber-50 border-l-4 border-l-amber-400'
+                          : 'hover:bg-gray-50/80'
+                    }`}
+                  >
                     <td className="px-5 py-4">
-                      <div className="font-bold text-[#2D3748] whitespace-nowrap">{item.nome}</div>
+                      <div className="font-bold text-[#2D3748] whitespace-nowrap flex items-center gap-2">
+                        {item.nome}
+                        {isVencido(item) && item.qtd > 0 && (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-600 text-white">VENCIDO</span>
+                        )}
+                        {isVencendo(item) && (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500 text-white">VENCE EM {diasParaVencer(item.validade)}D</span>
+                        )}
+                      </div>
                       {/*<div className="text-[10px] text-[#A0AEC0] font-mono mt-0.5">#{item.lote}</div>*/}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap">

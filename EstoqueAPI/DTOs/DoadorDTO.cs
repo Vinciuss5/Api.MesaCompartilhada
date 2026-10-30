@@ -32,7 +32,8 @@ namespace EstoqueAPI.DTOs
         string? Email,
         string? Telefone,
         string? CPF,
-        string? Endereco
+        string? Endereco,
+        bool Ativo
     );
 
     // DTO para Atualização (Permite alterar dados mantendo o ID intacto no parâmetro da URL)
@@ -45,6 +46,11 @@ namespace EstoqueAPI.DTOs
         string? Email,
 
         string? Telefone,
+
+        [RegularExpression(@"^(\d{11})?$", ErrorMessage = "O CPF deve conter apenas 11 números.")]
+        [CpfValido(ErrorMessage = "O CPF informado não é válido. Verifique os dígitos.")]
+        string? CPF,
+
         string? Endereco
     );
 }

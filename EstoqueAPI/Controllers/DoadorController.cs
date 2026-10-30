@@ -52,20 +52,38 @@ namespace EstoqueAPI.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> Put(int id, [FromBody] DoadorUpdateDTO dto)
         {
-            var atualizado = await _service.AtualizarAsync(id, dto);
-            if (!atualizado)
-                return NotFound(new { message = "Doador não encontrado para atualização." });
+            try
+            {
+                var atualizado = await _service.AtualizarAsync(id, dto);
+                if (!atualizado)
+                    return NotFound(new { message = "Doador não encontrado para atualização." });
 
-            return NoContent();
+                return NoContent();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpDelete("{id}")]
 
         public async Task<IActionResult> Delete(int id)
         {
+            // Exclusão lógica: o doador é desativado e o histórico de doações permanece
             var excluido = await _service.ExcluirAsync(id);
             if (!excluido)
                 return NotFound(new { message = "Doador não encontrado para exclusão." });
+
+            return NoContent();
+        }
+
+        [HttpPost("{id}/restaurar")]
+        public async Task<IActionResult> Restaurar(int id)
+        {
+            var restaurado = await _service.RestaurarAsync(id);
+            if (!restaurado)
+                return NotFound(new { message = "Doador não encontrado." });
 
             return NoContent();
         }

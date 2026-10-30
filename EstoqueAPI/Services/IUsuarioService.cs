@@ -10,5 +10,10 @@ namespace EstoqueAPI.Services
         Task<bool> AtualizarAsync(int id, UsuarioUpdateDTO dto);
         Task<bool> InativarAsync(int id); // Soft Delete: Nunca deletamos usuários físicos para manter histórico
         Task<(string Token, string Tipo)> LoginAsync(LoginDTO dto); // Retorna o Token JWT e o tipo do usuário
+
+        // --- Recuperação de senha ---
+        Task SolicitarRecuperacaoAsync(string email, string urlFrontend);
+        Task RedefinirSenhaAsync(string token, string novaSenha);
+        Task<bool> RedefinirSenhaPorAdminAsync(int id, string novaSenha);
     }
 }

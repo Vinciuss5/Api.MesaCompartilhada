@@ -1,11 +1,13 @@
-import { useContext } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Users, HeartHandshake, ClipboardList, Package, 
-  ArrowDownToLine, ArrowUpFromLine, FileText, LogOut, X 
+  ArrowDownToLine, ArrowUpFromLine, FileText, LogOut, X,
+  LayoutDashboard, ScrollText 
 } from 'lucide-react';
 
 import { AuthContext } from '../../contexts/AuthContext';
+import { authHeaders } from '../../services/authHeaders';
 
 export default function Sidebar({ isOpen = false, onClose }) {
   const navigate = useNavigate();
@@ -14,13 +16,28 @@ export default function Sidebar({ isOpen = false, onClose }) {
 
   // --- Controle de acesso: menu filtrado pelo perfil do usuário ---
   const permissoes = {
-    ADMIN: ['funcionarios', 'doador', 'solicitante', 'estoque', 'doacao', 'solicitacao', 'relatorios'],
-    FUNCIONARIO: ['estoque'],
-    CADASTRO: ['doador', 'solicitante'],
+    ADMIN: ['dashboard', 'funcionarios', 'doador', 'solicitante', 'estoque', 'doacao', 'solicitacao', 'relatorios', 'logs'],
+    FUNCIONARIO: ['dashboard', 'estoque'],
+    CADASTRO: ['dashboard', 'doador', 'solicitante'],
   };
   const permitidos = permissoes[tipo] || [];
 
+  // Badge de solicitações pendentes (exibido no item "Saída de Solicitações")
+  const [pendentes, setPendentes] = useState(0);
+  useEffect(() => {
+    if (tipo !== 'ADMIN') return;
+    let vivo = true;
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5235/api';
+    fetch(`${API_URL}/dashboard`, { headers: authHeaders() })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (vivo && d) setPendentes(d.solicitacoesPendentes || 0); })
+      .catch(() => {});
+    return () => { vivo = false; };
+  }, [tipo, location.pathname]);
+
   const todosItens = [
+    { key: 'dashboard', name: 'Painel', icon: LayoutDashboard, path: '/dashboard' },
+    { type: 'divider' },
     { key: 'funcionarios', name: 'Funcionários', icon: Users, path: '/funcionarios' },
     { key: 'doador', name: 'Doadores', icon: HeartHandshake, path: '/doador' },
     { key: 'solicitante', name: 'Solicitantes', icon: ClipboardList, path: '/solicitante' },
@@ -30,6 +47,8 @@ export default function Sidebar({ isOpen = false, onClose }) {
     { key: 'doacao', name: 'Entrada de Doações', icon: ArrowDownToLine, path: '/doacao' },
     { key: 'solicitacao', name: 'Saída de Solicitações', icon: ArrowUpFromLine, path: '/solicitacao' },
     { key: 'relatorios', name: 'Relatórios', icon: FileText, path: '/relatorios' },
+    { type: 'divider' },
+    { key: 'logs', name: 'Auditoria', icon: ScrollText, path: '/logs' },
   ];
 
   // Mantém só as telas do perfil e remove divisórias órfãs (início/fim/duplas)
@@ -112,6 +131,12 @@ export default function Sidebar({ isOpen = false, onClose }) {
                 >
                   <Icon size={20} className={isActive ? 'text-[#007b3e]' : 'text-white/70'} />
                   {item.name}
+                  {/* Badge: solicitações aguardando entrega */}
+                  {item.key === 'solicitacao' && pendentes > 0 && (
+                    <span className="ml-auto min-w-[22px] px-1.5 py-0.5 text-center text-[11px] font-bold rounded-full bg-amber-400 text-[#4A2F00] shadow-sm">
+                      {pendentes}
+                    </span>
+                  )}
                 </button>
               );
             })}

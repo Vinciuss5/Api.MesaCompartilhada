@@ -11,6 +11,10 @@ import Solicitante from './pages/Solicitante/Solicitante';
 import Doacao from './pages/Doacao/Doacao';
 import Solicitacao from './pages/Solicitacao/Solicitacao';
 import Relatorios from './pages/Relatorios/Relatorios';
+import Dashboard from './pages/Dashboard/Dashboard';
+import Logs from './pages/Logs/Logs';
+import EsqueciSenha from './pages/EsqueciSenha/EsqueciSenha';
+import RedefinirSenha from './pages/EsqueciSenha/RedefinirSenha';
 
 function App() {
   const { signed, loading, tipo } = useContext(AuthContext);
@@ -18,14 +22,15 @@ function App() {
 
   // --- Controle de acesso por perfil (telas que cada tipo pode ver) ---
   const permissoes = {
-    ADMIN: ['funcionarios', 'doador', 'solicitante', 'estoque', 'doacao', 'solicitacao', 'relatorios'],
-    FUNCIONARIO: ['estoque'],
-    CADASTRO: ['doador', 'solicitante'],
+    ADMIN: ['dashboard', 'funcionarios', 'doador', 'solicitante', 'estoque', 'doacao', 'solicitacao', 'relatorios', 'logs'],
+    FUNCIONARIO: ['dashboard', 'estoque'],
+    CADASTRO: ['dashboard', 'doador', 'solicitante'],
   };
   const telas = permissoes[tipo] || [];
-  const telaInicial = tipo === 'CADASTRO' ? '/doador' : '/estoque';
+  const telaInicial = '/dashboard'; // Todo perfil começa no painel
 
   const rotas = [
+    { key: 'dashboard', path: '/dashboard', element: <Dashboard /> },
     { key: 'estoque', path: '/estoque', element: <Estoque /> },
     { key: 'funcionarios', path: '/funcionarios', element: <Funcionarios /> },
     { key: 'doador', path: '/doador', element: <Doador /> },
@@ -33,6 +38,7 @@ function App() {
     { key: 'doacao', path: '/doacao', element: <Doacao /> },
     { key: 'solicitacao', path: '/solicitacao', element: <Solicitacao /> },
     { key: 'relatorios', path: '/relatorios', element: <Relatorios /> },
+    { key: 'logs', path: '/logs', element: <Logs /> },
   ];
 
   if (loading) {
@@ -48,6 +54,8 @@ function App() {
       {!signed ? (
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/esqueci-senha" element={<EsqueciSenha />} />
+          <Route path="/redefinir-senha" element={<RedefinirSenha />} />
           <Route path="*" element={<Navigate to="/login" />} />
         </Routes>
       ) : (

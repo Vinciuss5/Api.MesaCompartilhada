@@ -79,4 +79,13 @@ namespace EstoqueAPI.DTOs
 
         bool Ativo
     );
+
+    /// <summary>
+    /// DTO para redefinição de senha por um ADMIN (usuário esqueceu a senha).
+    /// </summary>
+    public record UsuarioSenhaDTO(
+        [Required(ErrorMessage = "A nova senha é obrigatória.")]
+        [StringLength(100, MinimumLength = 8, ErrorMessage = "A senha deve ter no mínimo 8 caracteres.")]
+        string Senha
+    );
 }

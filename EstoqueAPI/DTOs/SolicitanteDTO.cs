@@ -39,7 +39,8 @@ namespace EstoqueAPI.DTOs
         string? Telefone,
         string EnderecoEntrega,
         string? Email,
-        DateTime DataCadastro // Importante para o Frontend mostrar quando o cadastro foi feito
+        DateTime DataCadastro, // Importante para o Frontend mostrar quando o cadastro foi feito
+        bool Ativo
     );
 
     // DTO para Atualização: O que pode ser editado futuramente

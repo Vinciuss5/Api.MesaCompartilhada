@@ -63,12 +63,67 @@ export const useSolicitantes = () => {
     }
   };
 
+  // --- Edição (PUT /solicitante/{id}) ---
+  const updateSolicitante = async (id, SolicitanteDTO) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`${SOLICITANTE_URL}/${id}`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify(SolicitanteDTO),
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Erro ao atualizar o solicitante.');
+      }
+      await fetchSolicitantes();
+      return { success: true };
+    } catch (err) {
+      setError(err.message);
+      return { success: false, error: err.message };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // --- Exclusão lógica: desativar (mantém histórico) ---
+  const desativarSolicitante = async (id) => {
+    const response = await fetch(`${SOLICITANTE_URL}/${id}`, {
+      method: 'DELETE',
+      headers: authHeaders(),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Erro ao desativar o solicitante.');
+    }
+    await fetchSolicitantes();
+    return true;
+  };
+
+  // --- Reativar um solicitante desativado ---
+  const restaurarSolicitante = async (id) => {
+    const response = await fetch(`${SOLICITANTE_URL}/${id}/restaurar`, {
+      method: 'POST',
+      headers: authHeaders(),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Erro ao reativar o solicitante.');
+    }
+    await fetchSolicitantes();
+    return true;
+  };
+
   return {
     solicitantes,
     loading,
     error,
     fetchSolicitantes,
     createSolicitante,
+    updateSolicitante,
+    desativarSolicitante,
+    restaurarSolicitante,
     primeiraExecucao
   };
 };
