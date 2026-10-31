@@ -3,7 +3,6 @@ using EstoqueAPI.Data;
 using EstoqueAPI.DTOs;
 using EstoqueAPI.Models;
 using Microsoft.EntityFrameworkCore;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace EstoqueAPI.Services
 {

@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useFuncionarios } from '../../hooks/useFuncionarios';
+import { exportarCSV, sufixoData } from '../../services/exportarCSV';
 
 export default function FuncionariosIndex() {
   const {
@@ -77,6 +78,21 @@ const funcionariosFiltrados = funcionarios.filter((func) => {
     return nome.includes(search) || email.includes(search);
   });
 
+  // --- Exportar CSV da equipe (respeita o filtro de busca da tela) ---
+  const exportar = () => {
+    exportarCSV(
+      `funcionarios-${sufixoData()}.csv`,
+      ['Nome', 'E-mail', 'Perfil', 'Admissão', 'Status'],
+      funcionariosFiltrados.map((f) => [
+        f.nome,
+        f.email || '',
+        f.tipo,
+        f.dataAdmissao ? new Date(f.dataAdmissao).toLocaleDateString('pt-BR') : '',
+        f.ativo ? 'Ativo' : 'Inativo',
+      ])
+    );
+  };
+
   return (
     <div className="min-h-screen bg-[#F8F9FA] text-[#2D3748] p-4 md:p-8 font-sans">
       
@@ -86,13 +102,23 @@ const funcionariosFiltrados = funcionarios.filter((func) => {
           <h1 className="text-2xl font-bold tracking-tight">Funcionários</h1>
           <p className="text-sm text-[#718096]">Gestão de acessos e permissões da equipe.</p>
         </div>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="bg-[#007F45] hover:bg-[#006838] text-white px-5 py-2.5 rounded-lg font-semibold transition-all flex items-center gap-2 shadow-sm active:transform active:scale-95"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-          Cadastrar Funcionário
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={exportar}
+            disabled={funcionariosFiltrados.length === 0}
+            className="bg-white border border-gray-200 text-[#4A5568] px-5 py-2.5 rounded-lg font-semibold transition-all flex items-center gap-2 shadow-sm hover:bg-gray-50 disabled:opacity-50"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            Exportar CSV
+          </button>
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="bg-[#007F45] hover:bg-[#006838] text-white px-5 py-2.5 rounded-lg font-semibold transition-all flex items-center gap-2 shadow-sm active:transform active:scale-95"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            Cadastrar Funcionário
+          </button>
+        </div>
       </div>
 
       {/* Busca */}

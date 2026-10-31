@@ -72,11 +72,16 @@ export const useSolicitacao = () => {
         throw new Error(data.message || 'Erro ao atualizar status.');
       }
 
-      // Atualiza o status localmente para evitar um novo GET
+      // Atualiza o status localmente para evitar um GET
       setSolicitacoes((prev) => 
         prev.map((sol) => sol.id === id ? { ...sol, status: novoStatus } : sol)
       );
-      
+
+      // O PATCH responde 204 (sem corpo), então DataEntrega/EntreguePor gravados
+      // no servidor só chegam num novo GET — sem isso a tela de rastreabilidade
+      // mostraria "Não registrada"/"Não informado" até o próximo carregamento.
+      await fetchSolicitacoes();
+
       return { sucesso: true };
     } catch (err) {
       console.error(err);
@@ -85,7 +90,7 @@ export const useSolicitacao = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fetchSolicitacoes]);
 
   return { 
     solicitacoes, 

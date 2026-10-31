@@ -1,4 +1,3 @@
-import React from 'react';
 // Ajuste o caminho do import conforme a estrutura de pastas do seu projeto
 import { useRelatorios } from '../../hooks/useRelatorios'; 
 import { exportarCSV, sufixoData } from '../../services/exportarCSV';

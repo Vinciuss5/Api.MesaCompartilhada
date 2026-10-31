@@ -90,7 +90,7 @@ namespace EstoqueAPI.Services
                 return await BuscarPorIdAsync(solicitacao.Id)
                     ?? throw new Exception("Erro ao recuperar solicitação criada.");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 await transaction.RollbackAsync();
                 // Repassamos a exceção original ou uma personalizada para o Controller tratar

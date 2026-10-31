@@ -56,9 +56,13 @@ export default function SaidaSolicitacoes() {
     setQtdAtual('');
   };
 
+  // "Previsão de Entrega" viaja dentro da observação como marcador de texto
+  // (o DTO não possui campo de data). Sem data escolhida não gravamos o
+  // "[PREVISÃO: ]" vazio, e o total respeita os 255 caracteres do backend.
+  const prefixoPrevisao = dataPrevisao ? `[PREVISÃO: ${dataPrevisao}] ` : '';
+
   const handleRegistrarSolicitacao = async () => {
-    // Formata a observação para esconder a data de previsão
-    const obsFormatada = `[PREVISÃO: ${dataPrevisao}] ${observacao}`.trim();
+    const obsFormatada = `${prefixoPrevisao}${observacao}`.trim().slice(0, 255);
 
     const dto = {
       solicitanteId: parseInt(solicitanteId),
@@ -136,7 +140,7 @@ export default function SaidaSolicitacoes() {
   };
 
   return (
-<div className="min-h-screen bg-[#F8F9FA] text-[#2D3748] p-6 md:p-4 md:p-8 font-sans">
+<div className="min-h-screen bg-[#F8F9FA] text-[#2D3748] p-4 md:p-8 font-sans">
   
   {/* HEADER */}
   <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
@@ -295,7 +299,7 @@ export default function SaidaSolicitacoes() {
       </table>
       {solicitacoesFiltradas.length === 0 && (
         <div className="p-8 text-center text-gray-500">
-          Nenhuma solicitação encontrada para esta busca.
+          {loadingSol ? 'Carregando solicitações...' : 'Nenhuma solicitação encontrada para esta busca.'}
         </div>
       )}
     </div>
@@ -360,6 +364,7 @@ export default function SaidaSolicitacoes() {
                   type="text" 
                   value={observacao} 
                   onChange={(e) => setObservacao(e.target.value)} 
+                  maxLength={Math.max(0, 255 - prefixoPrevisao.length)}
                   className="w-full border border-gray-300 rounded-lg py-2.5 px-3 text-sm focus:ring-2 focus:ring-[#007F45] focus:border-[#007F45] outline-none transition-all" 
                   placeholder="Ex: Entregar na portaria" 
                 />

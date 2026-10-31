@@ -98,9 +98,18 @@ export function useFuncionarios() {
       });
       
       await handleResponse(response);
-      
+
+      // O PUT responde 204 (sem corpo), então atualizamos o registro local em
+      // camelCase — o formato que a tabela consome. Mesclar o payload PascalCase
+      // direto no objeto apagaria f.nome/f.email e sumiria a linha da tela.
       setFuncionarios((prev) => 
-        prev.map((f) => (f.id === id ? { ...f, ...payload } : f))
+        prev.map((f) => (f.id === id ? {
+          ...f,
+          nome: payload.Nome,
+          email: payload.Email,
+          tipo: payload.Tipo,
+          ativo: payload.Ativo,
+        } : f))
       );
       
       return { success: true };
@@ -161,7 +170,8 @@ export function useFuncionarios() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/usuario/${id}/senha`, {
+      // API_BASE_URL já aponta para .../api/usuario — não repetir o segmento
+      const response = await fetch(`${API_BASE_URL}/${id}/senha`, {
         method: 'PUT',
         headers: getHeaders(),
         body: JSON.stringify({ senha }),

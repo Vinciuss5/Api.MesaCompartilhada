@@ -22,7 +22,7 @@
     const { doacoesHistorico, fetchDoacoes } = useDoacao();
     const { solicitacoes, fetchSolicitacoes } = useSolicitacao();
 
-    // Dispara as requisições em paralelo para carregar o Dashboard rápido
+    // Recarrega os dados de todos os módulos (exposto como `recarregarDados`)
     const carregarDadosDashboard = useCallback(async () => {
       setIsCarregandoInicial(true);
       await Promise.all([
@@ -33,10 +33,18 @@
       setIsCarregandoInicial(false);
     }, [fetchEstoque, fetchDoacoes, fetchSolicitacoes]);
 
-    // Carrega ao montar o componente
+    // Carrega ao montar o componente. O estado já nasce `true`, então o efeito
+    // só precisa aguardar os dados e desligar o carregamento — isso acontece
+    // depois do `await`, fora do corpo síncrono do efeito
+    // (regra react-hooks/set-state-in-effect).
     useEffect(() => {
-      carregarDadosDashboard();
-    }, [carregarDadosDashboard]);
+      let vivo = true;
+      (async () => {
+        await Promise.all([fetchEstoque(), fetchDoacoes(), fetchSolicitacoes()]);
+        if (vivo) setIsCarregandoInicial(false);
+      })();
+      return () => { vivo = false; };
+    }, [fetchEstoque, fetchDoacoes, fetchSolicitacoes]);
 
     // ==========================================
     // LÓGICA DE NEGÓCIO E KPIs (Otimizado com useMemo)

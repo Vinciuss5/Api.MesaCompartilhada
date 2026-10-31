@@ -74,8 +74,8 @@ namespace EstoqueAPI.Controllers
         }
 
         [HttpDelete("{id}")]
-        // Restrição de autorização específica para o método Delete
-        [Authorize(Roles = "ADMIN")]
+        // Exclusão LÓGICA (Ativo=false) e reversível — mesmo nível do DoadorController,
+        // para o perfil CADASTRO não levar 403 ao usar o botão "Desativar" da tela.
         public async Task<IActionResult> Delete(int id)
         {
             try

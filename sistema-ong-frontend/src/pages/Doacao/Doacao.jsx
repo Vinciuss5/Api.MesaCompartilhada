@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useDoacao } from '../../hooks/useDoacao';
 import { useDoadores } from '../../hooks/useDoadores';
 import { useProdutos } from '../../hooks/useProdutos';
+import { exportarCSV, sufixoData } from '../../services/exportarCSV';
 
 export default function EntradaDoacoes() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -108,6 +109,24 @@ export default function EntradaDoacoes() {
     setValidadeAtual('');
   };
 
+  // --- Exportar CSV das entradas (uma linha por item, respeita a busca da tela) ---
+  const exportar = () => {
+    exportarCSV(
+      `doacoes-${sufixoData()}.csv`,
+      ['ID', 'Data', 'Doador', 'Produto', 'Quantidade', 'Validade'],
+      historicoFiltrado.flatMap((doacao) =>
+        doacao.itens.map((item) => [
+          doacao.idDisplay,
+          doacao.data,
+          doacao.doador,
+          item.produto,
+          item.quantidade,
+          item.validade,
+        ])
+      )
+    );
+  };
+
   const handleConcluirRecebimento = async () => {
     if (!doadorIdAtual || itensCarrinho.length === 0) {
       alert("Selecione um doador e adicione pelo menos um item.");
@@ -143,13 +162,23 @@ export default function EntradaDoacoes() {
           <h1 className="text-2xl font-bold text-[#2D3748]">Entrada de Doações</h1>
           <p className="text-sm text-[#718096] mt-1">Gerencie o recebimento de produtos e controle o histórico de entradas.</p>
         </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="bg-[#007F45] hover:bg-[#006838] text-white px-4 py-2 rounded-md font-medium transition-colors flex items-center gap-2 text-sm shadow-sm"
-        >
-          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
-          Registrar Nova Entrada
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={exportar}
+            disabled={historicoFiltrado.length === 0}
+            className="bg-white border border-gray-200 text-[#4A5568] px-4 py-2 rounded-md font-medium transition-colors flex items-center gap-2 text-sm hover:bg-gray-50 disabled:opacity-50"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            Exportar CSV
+          </button>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="bg-[#007F45] hover:bg-[#006838] text-white px-4 py-2 rounded-md font-medium transition-colors flex items-center gap-2 text-sm shadow-sm"
+          >
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
+            Registrar Nova Entrada
+          </button>
+        </div>
       </div>
 
       {/* BARRA DE PESQUISA */}

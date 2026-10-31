@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useDoadores } from '../../hooks/useDoadores';
 import {
   formatarCPF,
@@ -17,7 +17,7 @@ export default function DoadoresIndex() {
   const [editandoId, setEditandoId] = useState(null); // null = cadastro | id = edição
   const [searchTerm, setSearchTerm] = useState('');
   const [filtroStatus, setFiltroStatus] = useState('ativos'); // 'ativos' | 'todos' | 'inativos'
-  const { doadores, loading, fetchDoadores, createDoador, updateDoador, desativarDoador, restaurarDoador, primeiraExecucao } = useDoadores();
+  const { doadores, loading, fetchDoadores, createDoador, updateDoador, desativarDoador, restaurarDoador, primeiraExecucaoRef } = useDoadores();
 
   const [formData, setFormData] = useState(formInicial);
   const arquivoInputRef = useRef(null);
@@ -26,8 +26,8 @@ export default function DoadoresIndex() {
   const stripMask = (value) => (value || '').replace(/\D/g, '');
 
   useEffect(() => {
-    if (primeiraExecucao.current) {
-      primeiraExecucao.current = false;
+    if (primeiraExecucaoRef.current) {
+      primeiraExecucaoRef.current = false;
       fetchDoadores(searchTerm); // busca imediata ao entrar na tela, sem esperar 500ms
       return;
     }

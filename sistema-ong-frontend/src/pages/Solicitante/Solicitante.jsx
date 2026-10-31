@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSolicitantes } from '../../hooks/useSolicitantes';
 import {
   formatarCPF,
@@ -17,7 +17,7 @@ export default function SolicitantesIndex() {
   const [editandoId, setEditandoId] = useState(null); // null = cadastro | id = edição
   const [searchTerm, setSearchTerm] = useState('');
   const [filtroStatus, setFiltroStatus] = useState('ativos');
-  const { solicitantes, loading, fetchSolicitantes, createSolicitante, updateSolicitante, desativarSolicitante, restaurarSolicitante, primeiraExecucao } = useSolicitantes();
+  const { solicitantes, loading, fetchSolicitantes, createSolicitante, updateSolicitante, desativarSolicitante, restaurarSolicitante, primeiraExecucaoRef } = useSolicitantes();
 
   // tipoPessoa: 'F' = pessoa física (CPF) | 'J' = empresa/razão social (CNPJ)
   const formInicial = { nome: '', email: '', cpf: '', cnpj: '', telefone: '', cep: '', enderecoEntrega: '' };
@@ -28,8 +28,8 @@ export default function SolicitantesIndex() {
   const stripMask = (value) => (value || '').replace(/\D/g, '');
 
   useEffect(() => {
-    if (primeiraExecucao.current) {
-      primeiraExecucao.current = false;
+    if (primeiraExecucaoRef.current) {
+      primeiraExecucaoRef.current = false;
       fetchSolicitantes(searchTerm);
       return;
     }

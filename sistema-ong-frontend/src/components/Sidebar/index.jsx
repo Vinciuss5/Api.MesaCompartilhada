@@ -6,7 +6,7 @@ import {
   LayoutDashboard, ScrollText 
 } from 'lucide-react';
 
-import { AuthContext } from '../../contexts/AuthContext';
+import { AuthContext } from '../../contexts/auth-context';
 import { authHeaders } from '../../services/authHeaders';
 
 export default function Sidebar({ isOpen = false, onClose }) {

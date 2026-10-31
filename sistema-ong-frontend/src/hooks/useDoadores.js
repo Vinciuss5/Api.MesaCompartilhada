@@ -9,7 +9,7 @@ export const useDoadores = () => {
   const [doadores, setDoadores] = useState(cacheDoadores);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const primeiraExecucao = useRef(true);
+  const primeiraExecucaoRef = useRef(true);
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5235/api';
   const DOADOR_URL = `${API_URL}/doador`;
@@ -89,5 +89,5 @@ export const useDoadores = () => {
     return true;
   };
 
-  return { doadores, loading, error, fetchDoadores, createDoador, updateDoador, desativarDoador, restaurarDoador, primeiraExecucao };
+  return { doadores, loading, error, fetchDoadores, createDoador, updateDoador, desativarDoador, restaurarDoador, primeiraExecucaoRef };
 };

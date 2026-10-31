@@ -8,7 +8,7 @@ export const useSolicitantes = () => {
   const [solicitantes, setSolicitantes] = useState(cacheSolicitantes);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const primeiraExecucao = useRef(true);
+  const primeiraExecucaoRef = useRef(true);
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5235/api';
   const SOLICITANTE_URL = `${API_URL}/solicitante`;
@@ -124,6 +124,6 @@ export const useSolicitantes = () => {
     updateSolicitante,
     desativarSolicitante,
     restaurarSolicitante,
-    primeiraExecucao
+    primeiraExecucaoRef
   };
 };

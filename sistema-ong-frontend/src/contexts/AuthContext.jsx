@@ -1,24 +1,28 @@
-import { createContext, useState, useEffect } from 'react';
+import { useState } from 'react';
+import { AuthContext } from './auth-context';
 
-export const AuthContext = createContext({});
-
+// O contexto (AuthContext) vive em ./auth-context — este arquivo exporta apenas
+// o provider, o que mantém o Fast Refresh funcionando.
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  // Assim que o app inicia, verificamos se já existe um token salvo
-  useEffect(() => {
+  // A sessão salva é lida de forma preguiçosa: a primeira renderização já nasce
+  // com o usuário certo. Isso dispensa o efeito que fazia setState síncrono
+  // (evita renderização em cascata) e o flash do spinner de carregamento.
+  const [user, setUser] = useState(() => {
     const token = localStorage.getItem('@MesaCompartilhada:token');
     const tipo = localStorage.getItem('@MesaCompartilhada:tipo');
-    if (token && tipo) {
-      setUser({ token, tipo });
-    } else if (token) {
+
+    if (token && tipo) return { token, tipo };
+
+    if (token) {
       // Sessão antiga (anterior ao controle de acesso): força um novo login
       // para que o tipo do usuário seja definido.
       localStorage.removeItem('@MesaCompartilhada:token');
     }
-    setLoading(false);
-  }, []);
+    return null;
+  });
+
+  // Sem carregamento assíncrono: a sessão é resolvida na própria montagem.
+  const loading = false;
 
   async function signIn(email, senha) {
     try {
